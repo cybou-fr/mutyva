@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/qt/qml/Mutyva/Demo">
-    <file alias="qmldir">C:/Users/cybou/Desktop/mutyva/build-msvc/Mutyva/Demo/qmldir</file>
-  </qresource>
-</RCC>
-

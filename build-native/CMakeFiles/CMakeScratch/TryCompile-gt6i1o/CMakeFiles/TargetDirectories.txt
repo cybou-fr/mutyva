@@ -1,3 +1,0 @@
-C:/Users/cybou/Desktop/mutyva/build-native/CMakeFiles/CMakeScratch/TryCompile-gt6i1o/CMakeFiles/cmTC_5af58.dir
-C:/Users/cybou/Desktop/mutyva/build-native/CMakeFiles/CMakeScratch/TryCompile-gt6i1o/CMakeFiles/edit_cache.dir
-C:/Users/cybou/Desktop/mutyva/build-native/CMakeFiles/CMakeScratch/TryCompile-gt6i1o/CMakeFiles/rebuild_cache.dir
