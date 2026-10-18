@@ -40,7 +40,7 @@ Item {
     Component {
         id: containerView
         Rectangle {
-            color: root.definition.kind === "card" ? "#1c2840" : "transparent"
+            color: root.definition.kind === "card" ? brandIdentity.colors.surface : "transparent"
             radius: 16
             property int inset: root.definition.kind === "card" ? 18 : 0
             implicitHeight: body.implicitHeight + inset * 2
@@ -88,7 +88,7 @@ Item {
                 text: actionButton.text; textFormat: Text.PlainText
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WrapAnywhere
-                color: actionButton.enabled ? "#f0f5ff" : "#7c8aa3"
+                color: actionButton.enabled ? brandIdentity.colors.foreground : "#7c8aa3"
             }
             enabled: !appDocument.hasPreview && root.definition.action !== undefined
             onClicked: interactionState.trigger(root.definition.id)
@@ -132,7 +132,7 @@ Item {
                     Layout.fillWidth: true; wrapMode: Text.WrapAnywhere
                 }
             }
-            Label { text: "Список пуст"; visible: rows.count === 0; color: "#a3b0c8" }
+            Label { text: "Список пуст"; visible: rows.count === 0; color: brandIdentity.colors.muted }
         }
     }
 }

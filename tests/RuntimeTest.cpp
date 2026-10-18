@@ -14,6 +14,9 @@
 #include "WeatherService.h"
 #include "DesignerContext.h"
 #include "InteractionState.h"
+#include "BrandIdentity.h"
+#include <QImage>
+#include <QIcon>
 
 namespace {
 QJsonObject read(const QString &path) {
@@ -46,6 +49,64 @@ QQuickItem *findItem(QQuickItem *item, const QString &name) {
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void brandingPresentation() {
+        BrandIdentity branding(false);
+        QVERIFY(!branding.welcomeRequired());
+        QCOMPARE(branding.colors().value("cyan").toString(), "#00D9FF");
+        const QImage icon(":/branding/exports/mutyva-icon.png");
+        const QImage logo(":/branding/exports/mutyva-logo.png");
+        QCOMPARE(icon.size(), QSize(512, 512));
+        QVERIFY(!logo.isNull()); QVERIFY(logo.hasAlphaChannel());
+        QVERIFY(!QIcon(":/branding/exports/mutyva-icon.png").isNull());
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        InteractionState interaction(&document);
+        WeatherService weather;
+        QQmlApplicationEngine engine;
+        QStringList warnings;
+        connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
+            for (const auto &error : errors) warnings << error.toString();
+        });
+        engine.rootContext()->setContextProperty("appDocument", &document);
+        engine.rootContext()->setContextProperty("interactionState", &interaction);
+        engine.rootContext()->setContextProperty("weatherService", &weather);
+        engine.rootContext()->setContextProperty("brandIdentity", &branding);
+        engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
+        QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);
+        QVERIFY(window);
+        auto *header = window->findChild<QObject *>("brandHeaderIcon");
+        QVERIFY(header);
+        QTRY_COMPARE(header->property("status").toInt(), 1); // Image.Ready
+        auto *aboutButton = window->findChild<QObject *>("openAbout");
+        auto *about = window->findChild<QObject *>("aboutDialog");
+        QVERIFY(aboutButton && about);
+        QVERIFY(QMetaObject::invokeMethod(aboutButton, "clicked"));
+        QTRY_VERIFY(about->property("visible").toBool());
+        auto *identity = about->findChild<QObject *>("identityLogo");
+        QVERIFY(identity);
+        QTRY_COMPARE(identity->property("status").toInt(), 1);
+        const auto capture = qEnvironmentVariable("MUTYVA_BRAND_CAPTURE");
+        if (!capture.isEmpty()) {
+            QTest::qWait(200);
+            const auto image = window->grabWindow();
+            QVERIFY(!image.isNull()); QVERIFY(image.save(capture));
+        }
+        QVERIFY(QMetaObject::invokeMethod(about, "close"));
+        window->resize(360, 640);
+        auto *welcome = window->findChild<QObject *>("welcomeDialog");
+        QVERIFY(welcome);
+        QVERIFY(QMetaObject::invokeMethod(welcome, "open"));
+        QTRY_VERIFY(welcome->property("visible").toBool());
+        QTRY_VERIFY(welcome->property("width").toDouble() <= 328);
+        auto *start = welcome->findChild<QObject *>("startMutyva");
+        QVERIFY(start);
+        QVERIFY(QMetaObject::invokeMethod(start, "clicked"));
+        QTRY_VERIFY(!welcome->property("visible").toBool());
+        QCOMPARE(document.generation(), 1);
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
     void legacyMigration() {
         auto legacy = baseline(); legacy.insert("schemaVersion", 1);
         QString error;
@@ -168,6 +229,7 @@ private slots:
         AppDocument document(nullptr, folder.path());
         InteractionState interaction(&document);
         WeatherService weather;
+        BrandIdentity branding(false);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -176,6 +238,7 @@ private slots:
         engine.rootContext()->setContextProperty("appDocument", &document);
         engine.rootContext()->setContextProperty("weatherService", &weather);
         engine.rootContext()->setContextProperty("interactionState", &interaction);
+        engine.rootContext()->setContextProperty("brandIdentity", &branding);
         QVERIFY(document.previewPaletteDemo());
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
@@ -518,6 +581,7 @@ private slots:
         AppDocument document(nullptr, folder.path());
         WeatherService weather;
         InteractionState interaction(&document);
+        BrandIdentity branding(false);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -526,6 +590,7 @@ private slots:
         engine.rootContext()->setContextProperty("appDocument", &document);
         engine.rootContext()->setContextProperty("weatherService", &weather);
         engine.rootContext()->setContextProperty("interactionState", &interaction);
+        engine.rootContext()->setContextProperty("brandIdentity", &branding);
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);

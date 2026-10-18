@@ -7,20 +7,23 @@ ApplicationWindow {
     width: 1020
     height: 760
     visible: true
-    title: "MUTYVA — City Pulse"
-    color: "#101625"
-    property color fg: "#f0f5ff"
-    property color muted: "#a3b0c8"
+    title: "MUTYVA"
+    color: brandIdentity.colors.background
+    property color fg: brandIdentity.colors.foreground
+    property color muted: brandIdentity.colors.muted
     property bool editorOpen: false
-    palette.window: "#101625"
-    palette.windowText: "#f0f5ff"
-    palette.text: "#f0f5ff"
-    palette.base: "#1c2840"
-    palette.button: "#26344d"
-    palette.buttonText: "#f0f5ff"
-    palette.highlight: "#2864b1"
+    palette.window: brandIdentity.colors.background
+    palette.windowText: root.fg
+    palette.text: root.fg
+    palette.base: brandIdentity.colors.surface
+    palette.button: brandIdentity.colors.button
+    palette.buttonText: root.fg
+    palette.highlight: brandIdentity.colors.violet
     palette.highlightedText: "white"
-    palette.placeholderText: "#a3b0c8"
+    palette.placeholderText: root.muted
+    IdentityDialog { id: welcomeDialog; welcomeMode: true }
+    IdentityDialog { id: aboutDialog }
+    Component.onCompleted: { if (brandIdentity.welcomeRequired) welcomeDialog.open() }
 
     ScrollView {
         anchors.fill: parent
@@ -34,14 +37,15 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 12
-                Rectangle {
-                    width: 39; height: 39; radius: 12; color: "#2864b1"
-                    Text { anchors.centerIn: parent; text: "M"; color: "white"; font.bold: true; font.pixelSize: 22 }
+                Image {
+                    objectName: "brandHeaderIcon"
+                    Layout.preferredWidth: 48; Layout.preferredHeight: 48
+                    source: brandIdentity.iconUrl; fillMode: Image.PreserveAspectFit; mipmap: true
                 }
                 ColumnLayout {
                     spacing: 1
-                    Text { text: "MUTYVA"; font.bold: true; font.pixelSize: 22; color: root.fg }
-                    Text { text: "City Pulse · public API demo"; color: root.muted; font.pixelSize: 12 }
+                    Text { text: "MUTYVA"; font.bold: true; font.pixelSize: 22; font.letterSpacing: 2; color: root.fg }
+                    Text { text: "One App. Infinite Forms."; color: brandIdentity.colors.cyan; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
                 Label { text: "Поколение " + appDocument.generation; color: root.muted }
@@ -60,6 +64,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.preferredHeight: childrenRect.height
                 spacing: 8
+                Button { objectName: "openAbout"; text: "О MUTYVA"; onClicked: aboutDialog.open() }
                 Button { text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
                 Button { text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
                 Button { text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
@@ -75,7 +80,7 @@ ApplicationWindow {
             ColumnLayout {
                 visible: appDocument.hasPreview
                 Layout.fillWidth: true
-                Label { text: "Предпросмотр · ещё не сохранено"; color: "#9befdc"; font.bold: true; font.pixelSize: 18 }
+                Label { text: "Предпросмотр · ещё не сохранено"; color: brandIdentity.colors.cyan; font.bold: true; font.pixelSize: 18 }
                 Label {
                     text: appDocument.previewSummary
                     textFormat: Text.PlainText

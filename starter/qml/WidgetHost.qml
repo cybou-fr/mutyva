@@ -28,7 +28,7 @@ Loader {
     Component {
         id: citySearch
         Rectangle {
-            implicitHeight: searchLayout.implicitHeight + 32; radius: 16; color: "#1c2840"
+            implicitHeight: searchLayout.implicitHeight + 32; radius: 16; color: brandIdentity.colors.surface
             ColumnLayout {
                 id: searchLayout
                 anchors.fill: parent; anchors.margins: 16; spacing: 10
@@ -52,7 +52,7 @@ Loader {
     Component {
         id: weatherCard
         Rectangle {
-            implicitHeight: weatherLayout.implicitHeight + 36; radius: 16; color: "#1c2840"
+            implicitHeight: weatherLayout.implicitHeight + 36; radius: 16; color: brandIdentity.colors.surface
             ColumnLayout {
                 id: weatherLayout
                 anchors.fill: parent; anchors.margins: 18; spacing: 8
@@ -60,12 +60,12 @@ Loader {
                     text: host.definition.title === undefined ? "Текущая погода" : host.definition.title
                     textFormat: Text.PlainText; color: "white"; Layout.fillWidth: true; wrapMode: Text.WordWrap
                 }
-                Text { text: weatherService.city; color: "#a3b0c8"; font.pixelSize: 17; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                Text { text: weatherService.city; color: brandIdentity.colors.muted; font.pixelSize: 17; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 RowLayout {
                     Layout.fillWidth: true
                     Text { text: weatherService.temperature.toFixed(1) + " °C"; color: "white"; font.bold: true; font.pixelSize: host.width < 400 ? 30 : 39 }
                     Item { Layout.fillWidth: true }
-                    Text { text: "Ветер " + weatherService.wind.toFixed(1) + " км/ч"; color: "#a3b0c8"; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                    Text { text: "Ветер " + weatherService.wind.toFixed(1) + " км/ч"; color: brandIdentity.colors.muted; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 }
             }
         }
@@ -73,7 +73,7 @@ Loader {
     Component {
         id: forecastList
         Rectangle {
-            implicitHeight: daysCol.implicitHeight + 35; radius: 16; color: "#1c2840"
+            implicitHeight: daysCol.implicitHeight + 35; radius: 16; color: brandIdentity.colors.surface
             ColumnLayout {
                 id: daysCol
                 anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
@@ -91,7 +91,7 @@ Loader {
                         Text { text: modelData.date; color: "#b9c6dd"; Layout.preferredWidth: 94; font.pixelSize: 12 }
                         Item { Layout.fillWidth: true }
                         Text { text: Number(modelData.min).toFixed(0) + "…" + Number(modelData.max).toFixed(0) + " °C"; color: "white"; font.pixelSize: 12 }
-                        Text { text: "☔ " + Number(modelData.rain).toFixed(1) + " мм"; color: "#a3b0c8"; font.pixelSize: 12 }
+                        Text { text: "☔ " + Number(modelData.rain).toFixed(1) + " мм"; color: brandIdentity.colors.muted; font.pixelSize: 12 }
                     }
                 }
             }
@@ -100,7 +100,7 @@ Loader {
     Component {
         id: airCard
         Rectangle {
-            implicitHeight: airLayout.implicitHeight + 36; radius: 16; color: "#1c2840"
+            implicitHeight: airLayout.implicitHeight + 36; radius: 16; color: brandIdentity.colors.surface
             RowLayout {
                 id: airLayout
                 anchors.fill: parent; anchors.margins: 18
@@ -108,12 +108,12 @@ Loader {
                     Layout.fillWidth: true
                     Text {
                         text: host.definition.title === undefined ? "Качество воздуха" : host.definition.title
-                        textFormat: Text.PlainText; color: "#a3b0c8"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                        textFormat: Text.PlainText; color: brandIdentity.colors.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
                     }
                     Text { text: "European Air Quality Index"; color: "white"; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 }
                 Item { Layout.fillWidth: true }
-                Text { text: weatherService.aqi >= 0 ? weatherService.aqi.toString() : "—"; color: "#7ed1ac"; font.bold: true; font.pixelSize: 31 }
+                Text { text: weatherService.aqi >= 0 ? weatherService.aqi.toString() : "—"; color: brandIdentity.colors.cyan; font.bold: true; font.pixelSize: 31 }
             }
         }
     }
@@ -130,7 +130,7 @@ Loader {
                     Layout.fillWidth: true; wrapMode: Text.WordWrap
                 }
                 Item { Layout.fillWidth: true }
-                Text { text: weatherService.humidity + " %"; color: "#9befdc"; font.bold: true; font.pixelSize: 29 }
+                Text { text: weatherService.humidity + " %"; color: brandIdentity.colors.cyan; font.bold: true; font.pixelSize: 29 }
             }
         }
     }

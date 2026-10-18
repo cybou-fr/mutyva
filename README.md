@@ -1,4 +1,10 @@
-# MUTYVA — MVP Delivery Pack
+<p align="center">
+  <img src="branding/exports/mutyva-logo.png" width="640" alt="MUTYVA — One App. Infinite Forms." />
+</p>
+
+# MUTYVA — One App. Infinite Forms.
+
+**Одно приложение. Любая форма.** Локальная среда приложений на Qt с общей палитрой, предпросмотром изменений и историей поколений.
 
 **Status:** declarative Qt editor with validated local mutations and preview, 2026-10-18. **Language:** Russian.
 **Product:** One AI-driven Qt application that can become many applications; after a mutation is saved, it executes independently of AI.
@@ -30,6 +36,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
 | `docs/12_GENERAL_PALETTE.md` + `examples/general-workspace.mutyva.json` | Seven general components, nested v2 layouts and an interactive Notes example |
+| `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Quickest path to a visible result
@@ -45,6 +52,8 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 **Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Weather bindings are fixed per component; general controls support typed session actions. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic input/list values are kept separately by stable ID, while weather search view state is not reconciled yet.
 
 ## Build and tests
+
+**Branding:** supplied artwork is integrated into README, application resources, first-run welcome/About and desktop/Android packaging. See [branding/README.md](branding/README.md) for exports, reproduction and platform verification notes. Runtime display branding preserves the previous data-storage namespace.
 
 **Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. No inference request is sent yet. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
 

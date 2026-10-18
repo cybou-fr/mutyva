@@ -1,5 +1,9 @@
 # MUTYVA — Product Vision
 
+![MUTYVA](../branding/exports/mutyva-logo.png)
+
+Visual identity and platform assets: [branding guide](../branding/README.md).
+
 ## Promise
 
 **One App. Infinite Forms.** An AI-driven, local-first Qt application that becomes the tool a person needs. The application itself changes shape; it does not continuously generate separately installed EXE/APK packages.

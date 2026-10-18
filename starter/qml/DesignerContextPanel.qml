@@ -31,7 +31,7 @@ ColumnLayout {
         text: appDocument.designerMessage
         textFormat: Text.PlainText
         visible: text.length > 0
-        color: "#9befdc"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+        color: brandIdentity.colors.cyan; Layout.fillWidth: true; wrapMode: Text.WordWrap
     }
     Label {
         text: "Сейчас работает локальная подготовка. Подключение ChatGPT — следующий этап. Показания API, история и данные текущего сеанса не включаются; декларация и начальные значения компонентов включаются."

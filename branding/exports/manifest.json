@@ -1,0 +1,24 @@
+{
+  "sourcesSha256": {
+    "app-icon.png": "126cd8dd47823358c80acadb625c69c54275b15feba611a742ad774092e785ff",
+    "logo-lockup.png": "e8c80158eb5caf8b4a673bb3a09c0695c519bead060e7cd8c16fa92e517a2f89"
+  },
+  "symbolCrop": [
+    400,
+    68,
+    1270,
+    655
+  ],
+  "operations": [
+    "source-region extraction",
+    "Lanczos resampling",
+    "format conversion",
+    "adaptive-icon centering",
+    "monochrome alpha mask"
+  ],
+  "android": {
+    "canvasDp": 108,
+    "foregroundWidthDp": 54,
+    "legacyDp": 48
+  }
+}

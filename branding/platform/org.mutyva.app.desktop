@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=MUTYVA
+Comment=One App. Infinite Forms.
+Comment[ru]=Одно приложение. Любая форма.
+Exec=mutyva-demo
+Icon=mutyva
+Terminal=false
+Categories=Utility;
+StartupWMClass=mutyva-demo
