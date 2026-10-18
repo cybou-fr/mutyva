@@ -50,7 +50,7 @@ Dialog {
                 color: brandIdentity.colors.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Label {
-                text: "Чат с AI пока не подключён. Сейчас можно пользоваться погодой и сохранёнными инструментами."
+                text: "Откройте чат и войдите через ChatGPT, чтобы предложить изменения. Погода и сохранённые инструменты работают без AI."
                 font.pixelSize: 13
                 color: brandIdentity.colors.cyan; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }

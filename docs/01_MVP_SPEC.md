@@ -1,5 +1,7 @@
 # MVP Product Requirements
 
+**Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
+
 ## Goal
 
 Prove six things in ONE demo: (1) live public data, (2) Qt responsive rendering, (3) a declarative component registry, (4) real ChatGPT Plus-capable sign-in, (5) one AI-proposed mutation that modifies the UI safely, (6) persistence and reopening without AI.
@@ -15,8 +17,8 @@ A person without programming skills needs a more useful view of public data and 
 | Landing / app | MUTYVA header; city selection; City Pulse with live data; status/error and refresh |
 | AI Design sheet | “Continue with ChatGPT” when disconnected, natural language field when connected, visible progress/cancel |
 | Mutation preview | Human-readable changes; added/removed widgets; permissions; Apply / Cancel; errors |
-| Generations | Chronological successful generations; view summary and restore chosen generation as a new commit |
-| Settings | Sign in/out, connection state, source attribution, local file locations and optional clear cached data |
+| History (secondary) | Chronological successful generations; view summary and restore chosen generation as a new commit |
+| Settings | Sign in/out, connection state, source attribution, privacy notice and optional clear cached data; technical paths belong in developer diagnostics |
 
 ## Key behaviors / acceptance
 

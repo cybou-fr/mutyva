@@ -15,13 +15,56 @@
 #include "DesignerContext.h"
 #include "InteractionState.h"
 #include "BrandIdentity.h"
+#include "ChatSession.h"
+#include "AiChat.h"
+#include "SiwcProtocol.h"
+#include "AiResponseStream.h"
 #include <QImage>
 #include <QIcon>
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QUuid>
+#ifdef Q_OS_WIN
+#define NOMINMAX
+#include <windows.h>
+#include <bcrypt.h>
+#endif
 
 namespace {
+QByteArray sse(const QJsonObject &event) {
+    return "data: " + QJsonDocument(event).toJson(QJsonDocument::Compact) + "\n\n";
+}
+QJsonObject completed(const QString &text) {
+    return {{"type", "response.completed"}, {"response", QJsonObject{{"status", "completed"},
+        {"output", QJsonArray{QJsonObject{{"type", "message"}, {"role", "assistant"}, {"status", "completed"},
+            {"content", QJsonArray{QJsonObject{{"type", "output_text"}, {"text", text}}}}}}}}}};
+}
+#ifdef Q_OS_WIN
+QPair<QString, QJsonObject> signedIdentity(const QJsonObject &claims) {
+    BCRYPT_ALG_HANDLE algorithm = nullptr;
+    BCRYPT_KEY_HANDLE key = nullptr;
+    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_RSA_ALGORITHM, nullptr, 0) < 0) return {};
+    auto cleanup = qScopeGuard([&] { if (key) BCryptDestroyKey(key); BCryptCloseAlgorithmProvider(algorithm, 0); });
+    if (BCryptGenerateKeyPair(algorithm, &key, 2048, 0) < 0 || BCryptFinalizeKeyPair(key, 0) < 0) return {};
+    ULONG length = 0;
+    BCryptExportKey(key, nullptr, BCRYPT_RSAPUBLIC_BLOB, nullptr, 0, &length, 0);
+    QByteArray publicKey(length, Qt::Uninitialized);
+    if (BCryptExportKey(key, nullptr, BCRYPT_RSAPUBLIC_BLOB, reinterpret_cast<PUCHAR>(publicKey.data()), length, &length, 0) < 0) return {};
+    const auto *header = reinterpret_cast<const BCRYPT_RSAKEY_BLOB *>(publicKey.constData());
+    auto encode = [](const QByteArray &data) { return data.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals); };
+    QJsonObject jwk{{"kid", "test-key"}, {"kty", "RSA"}, {"alg", "RS256"}, {"use", "sig"},
+        {"e", QString::fromLatin1(encode(publicKey.mid(sizeof(*header), header->cbPublicExp)))},
+        {"n", QString::fromLatin1(encode(publicKey.mid(sizeof(*header) + header->cbPublicExp, header->cbModulus)))}};
+    const auto jwtHeader = QJsonDocument(QJsonObject{{"alg", "RS256"}, {"kid", "test-key"}}).toJson(QJsonDocument::Compact);
+    const auto message = encode(jwtHeader) + '.' + encode(QJsonDocument(claims).toJson(QJsonDocument::Compact));
+    auto hash = QCryptographicHash::hash(message, QCryptographicHash::Sha256);
+    BCRYPT_PKCS1_PADDING_INFO padding{BCRYPT_SHA256_ALGORITHM};
+    if (BCryptSignHash(key, &padding, reinterpret_cast<PUCHAR>(hash.data()), hash.size(), nullptr, 0, &length, BCRYPT_PAD_PKCS1) < 0) return {};
+    QByteArray signature(length, Qt::Uninitialized);
+    if (BCryptSignHash(key, &padding, reinterpret_cast<PUCHAR>(hash.data()), hash.size(), reinterpret_cast<PUCHAR>(signature.data()), length, &length, BCRYPT_PAD_PKCS1) < 0) return {};
+    return {QString::fromLatin1(message + '.' + encode(signature)), QJsonObject{{"keys", QJsonArray{jwk}}}};
+}
+#endif
 QJsonObject read(const QString &path) {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return {};
@@ -64,6 +107,90 @@ bool dataSql(const QString &path, const QString &sql) {
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void siwcCallbackAndPkce() {
+        QCOMPARE(SiwcProtocol::challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), QString("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"));
+        const auto secret = SiwcProtocol::randomSecret();
+        QCOMPARE(secret.size(), 43); QVERIFY(secret != SiwcProtocol::randomSecret());
+        QString code, client;
+        QVERIFY(SiwcProtocol::callback(QUrl("/auth/callback?state=abc&code=hello&client_id=oaiapp_test"), "abc", {}, code, client));
+        QCOMPARE(client, QString("oaiapp_test")); QCOMPARE(code, QString("hello"));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/auth/callback?state=bad&code=x&client_id=oaiapp_test"), "abc", {}, code, client));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/auth/callback?state=abc&state=abc&code=x&client_id=oaiapp_test"), "abc", {}, code, client));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/auth/callback?state=abc&code=x&client_id=dynamic_agent_client"), "abc", {}, code, client));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/auth/callback?state=abc&code=x&client_id=other"), "abc", "saved", code, client));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/auth/callback?state=abc&error=access_denied"), "abc", "saved", code, client));
+        QVERIFY(!SiwcProtocol::callback(QUrl("/callback?state=abc&code=x"), "abc", "saved", code, client));
+        QVERIFY(SiwcProtocol::callback(QUrl("/auth/callback?state=abc&code=x"), "abc", "saved", code, client));
+    }
+    void siwcIdentityVerification() {
+#ifdef Q_OS_WIN
+        const QJsonObject claims{{"iss", "https://auth.openai.com"}, {"sub", "test-subject"},
+            {"aud", "oaiapp_test"}, {"nonce", "test-nonce"}, {"iat", 1000}, {"exp", 2000}};
+        const auto signedToken = signedIdentity(claims);
+        QVERIFY(!signedToken.first.isEmpty());
+        QJsonObject verified;
+        QVERIFY(SiwcProtocol::verifyIdentity(signedToken.first, signedToken.second, "oaiapp_test", "test-nonce", 1100, verified));
+        QCOMPARE(verified.value("sub").toString(), QString("test-subject"));
+        QVERIFY(!SiwcProtocol::verifyIdentity(signedToken.first, signedToken.second, "wrong-client", "test-nonce", 1100, verified));
+        QVERIFY(verified.isEmpty());
+        QVERIFY(!SiwcProtocol::verifyIdentity(signedToken.first, signedToken.second, "oaiapp_test", "wrong-nonce", 1100, verified));
+        QVERIFY(!SiwcProtocol::verifyIdentity(signedToken.first, signedToken.second, "oaiapp_test", "test-nonce", 2100, verified));
+        QVERIFY(!SiwcProtocol::verifyIdentity(signedToken.first, signedToken.second, "oaiapp_test", "test-nonce", 900, verified));
+        auto corrupted = signedToken.first; corrupted[corrupted.size() - 10] = corrupted[corrupted.size() - 10] == 'A' ? 'B' : 'A';
+        QVERIFY(!SiwcProtocol::verifyIdentity(corrupted, signedToken.second, "oaiapp_test", "test-nonce", 1100, verified));
+        QVERIFY(!SiwcProtocol::verifyIdentity(signedToken.first, {}, "oaiapp_test", "test-nonce", 1100, verified));
+#else
+        QSKIP("Windows CNG verifier; other platforms are disabled");
+#endif
+    }
+    void aiStreamCompletion() {
+        const auto payload = QString::fromUtf8("{\"status\":\"clarification\",\"message\":\"Какие задачи?\"}");
+        const auto data = sse(completed(payload));
+        AiResponseStream stream;
+        // Split through every byte, including UTF-8 characters and SSE separators.
+        for (char byte : data) QVERIFY(stream.feed(QByteArray(1, byte)));
+        QVERIFY(stream.finish()); QCOMPARE(stream.text(), payload);
+        AiResponseStream partial;
+        QVERIFY(partial.feed(sse(QJsonObject{{"type", "response.output_text.delta"}, {"delta", payload}})));
+        QVERIFY(!partial.finish());
+        AiResponseStream truncated;
+        QVERIFY(truncated.feed(data.left(data.size() - 1))); QVERIFY(!truncated.finish());
+        AiResponseStream failed;
+        QVERIFY(failed.feed(sse(QJsonObject{{"type", "response.output_text.delta"}, {"delta", payload}})));
+        QVERIFY(!failed.feed(sse(QJsonObject{{"type", "response.failed"}}))); QVERIFY(!failed.finish());
+        AiResponseStream tooLarge; QVERIFY(!tooLarge.feed(QByteArray(2 * 1024 * 1024 + 1, 'x')));
+        AiResponseStream duplicate; QVERIFY(duplicate.feed(data)); QVERIFY(!duplicate.feed(data));
+        AiResponseStream done; QVERIFY(done.feed(data + "data: [DONE]\n\n")); QVERIFY(done.finish());
+        AiResponseStream prematureDone; QVERIFY(!prematureDone.feed("data: [DONE]\n\n"));
+        auto invalid = completed(payload); auto response = invalid.value("response").toObject();
+        response["output"] = QJsonArray{QJsonObject{{"type", "function_call"}}}; invalid["response"] = response;
+        AiResponseStream tool; QVERIFY(!tool.feed(sse(invalid)));
+        QCOMPARE(AiResponseStream::selectModel(QJsonObject{{"models", QJsonArray{
+            QJsonObject{{"slug", "hidden"}, {"visibility", "hidden"}}, QJsonObject{{"slug", "available"}, {"visibility", "list"}}}}}), QString("available"));
+    }
+    void aiChatProposalBoundary() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        ChatSession session;
+        AiChat chat(&document, &session);
+        QVERIFY(!session.connected()); QVERIFY(!chat.send("Добавь влажность"));
+        QVERIFY(chat.messages().isEmpty());
+        QVERIFY(document.prepareDesignerContext("Добавь влажность"));
+        const int generation = document.generation();
+        QSignalSpy preview(&chat, &AiChat::proposalReady);
+        QVERIFY(!chat.acceptResponse("not json", generation));
+        const auto fixture = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json"));
+        QVERIFY(chat.acceptResponse(json(fixture), generation));
+        QCOMPARE(preview.count(), 1); QVERIFY(document.hasPreview()); QCOMPARE(document.generation(), generation);
+        QVERIFY(!chat.acceptResponse(json(fixture), generation)); QVERIFY(document.hasPreview()); // don't cancel another pending proposal
+        document.cancelPreview();
+        QVERIFY(document.prepareDesignerContext("Что нужно уточнить?"));
+        QVERIFY(chat.acceptResponse(json(QJsonObject{{"status", "clarification"}, {"message", "Как назвать список?"}}), generation));
+        QVERIFY(!document.hasPreview()); QCOMPARE(chat.messages().last().toMap().value("text").toString(), QString("Как назвать список?"));
+        QVERIFY(!chat.acceptResponse(json(fixture), generation - 1));
+        chat.cancel(); QVERIFY(!chat.busy()); QCOMPARE(document.generation(), generation);
+    }
+
     void localDataRestartAndHistory() {
         QTemporaryDir folder;
         QString secret = "Личные данные, которых нет в конфигурации";
@@ -215,6 +342,8 @@ private slots:
         AppDocument document(nullptr, folder.path());
         InteractionState interaction(&document);
         WeatherService weather;
+        ChatSession chatSession;
+        AiChat aiChat(&document, &chatSession);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -224,6 +353,8 @@ private slots:
         engine.rootContext()->setContextProperty("interactionState", &interaction);
         engine.rootContext()->setContextProperty("weatherService", &weather);
         engine.rootContext()->setContextProperty("brandIdentity", &branding);
+        engine.rootContext()->setContextProperty("chatSession", &chatSession);
+        engine.rootContext()->setContextProperty("aiChat", &aiChat);
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);
@@ -234,6 +365,7 @@ private slots:
         auto *chatButton = window->findChild<QObject *>("openChat");
         auto *chat = window->findChild<QObject *>("aiChat");
         QVERIFY(chatButton && chat);
+        QCOMPARE(chat->property("leftPadding").toInt(), 20);
         QVERIFY(!window->property("editorOpen").toBool());
         QVERIFY(!window->findChild<QObject *>("reloadData")->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(chatButton, "clicked"));
@@ -248,6 +380,12 @@ private slots:
         QCOMPARE(composer->property("text").toString(), QString("Список задач"));
         window->resize(360, 640);
         QTRY_VERIFY(chat->property("width").toDouble() <= 360);
+        const auto chatCapture = qEnvironmentVariable("MUTYVA_CHAT_CAPTURE");
+        if (!chatCapture.isEmpty()) {
+            QTest::qWait(250);
+            const auto image = window->grabWindow();
+            QVERIFY(!image.isNull()); QVERIFY(image.save(chatCapture));
+        }
         QVERIFY(QMetaObject::invokeMethod(chat, "close"));
         window->resize(1020, 760);
         auto *aboutButton = window->findChild<QObject *>("openAbout");
@@ -406,6 +544,8 @@ private slots:
         InteractionState interaction(&document);
         WeatherService weather;
         BrandIdentity branding(false);
+        ChatSession chatSession;
+        AiChat aiChat(&document, &chatSession);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -416,6 +556,8 @@ private slots:
         engine.rootContext()->setContextProperty("interactionState", &interaction);
         engine.rootContext()->setContextProperty("brandIdentity", &branding);
         QVERIFY(document.previewPaletteDemo());
+        engine.rootContext()->setContextProperty("chatSession", &chatSession);
+        engine.rootContext()->setContextProperty("aiChat", &aiChat);
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);
@@ -758,6 +900,8 @@ private slots:
         WeatherService weather;
         InteractionState interaction(&document);
         BrandIdentity branding(false);
+        ChatSession chatSession;
+        AiChat aiChat(&document, &chatSession);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -767,6 +911,8 @@ private slots:
         engine.rootContext()->setContextProperty("weatherService", &weather);
         engine.rootContext()->setContextProperty("interactionState", &interaction);
         engine.rootContext()->setContextProperty("brandIdentity", &branding);
+        engine.rootContext()->setContextProperty("chatSession", &chatSession);
+        engine.rootContext()->setContextProperty("aiChat", &aiChat);
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);

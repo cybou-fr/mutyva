@@ -304,7 +304,7 @@ bool AppDocument::prepareDesignerContext(const QString &request) {
     }
     m_contextGeneration = m_generation;
     m_designerContext = QString::fromUtf8(QJsonDocument(packet).toJson(QJsonDocument::Indented));
-    m_designerMessage = "Контекст подготовлен локально. Отправки в AI ещё нет.";
+    m_designerMessage = "Контекст подготовлен локально.";
     m_error.clear();
     emit documentChanged();
     emit designerChanged();

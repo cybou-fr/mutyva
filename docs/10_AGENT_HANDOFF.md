@@ -1,5 +1,7 @@
 # Coding Agent Handoff — Work Instructions
 
+**Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
+
 ## Mission
 
 Implement the smallest production-shaped, end-to-end MUTYVA AI-driven mutation loop in the existing Qt starter. The desired experience: run City Pulse, sign in with ChatGPT using official OSS flow, ask in Russian for a humidity card, preview, accept, persist and reopen the altered app **without AI**.
@@ -21,8 +23,8 @@ Implement the smallest production-shaped, end-to-end MUTYVA AI-driven mutation l
 1. **Build and inspect** current starter on Windows. Fix immediate QML/CMake issues. Confirm City Pulse uses public APIs.
 2. **Core document model**: add validation against `specs/app.schema.json`, known kinds, stable IDs and type-safe bindings.
 3. **Mutation engine**: load `examples/mutations/add-humidity-card.json`, preview, apply only on explicit confirmation; invalid mutation leaves no traces.
-4. **Generations**: add list/restore UI, atomic writes and tests; keep prior generations immutable.
-5. **ChatGPT OAuth**: follow current official SIWC docs literally; secure session management, model discovery, streaming inference; prove a harmless hello request.
+4. **Generations**: retain immutable snapshots internally; history browsing is secondary to the working chat flow.
+5. **ChatGPT OAuth**: verify the implemented Windows ChatSession/AiChat path with a consenting eligible account; then add protected persistence, refresh and account selection. See doc15.
 6. **AI mutation**: send current app, allowed catalog and user intent; parse JSON and apply through exactly the same mutation engine as the local fixture.
 7. **Clean installation E2E**: no sign-in normal mode, then account auth + mutation, then offline restart.
 8. **Android smoke**: responsive/touch, actual device OAuth callback test.
@@ -33,7 +35,7 @@ Implement the smallest production-shaped, end-to-end MUTYVA AI-driven mutation l
 
 ## Rules for AI output
 
-`AiDesigner` must instruct the model to emit a JSON object matching `specs/mutation.schema.json`, not markdown. Re-prompt once with a *validation summary* if invalid; do not send private data back. Any continued failure shows a useful error and preserves HEAD.
+`AiChat` must instruct the model to emit the envelope matching `specs/designer-response.schema.json`, containing a mutation matching `specs/mutation.schema.json`, not markdown. The current implementation shows a useful error on invalid output and preserves HEAD; retries are manual. A future bounded repair request must use only a validation summary and must not send private data back.
 
 ## Review gates
 

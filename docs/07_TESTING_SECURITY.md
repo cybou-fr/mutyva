@@ -58,3 +58,7 @@ Default to local diagnostic logs with redaction and no remote telemetry. Do not 
 ## Licence + attribution
 
 Qt licensing must be reviewed for chosen Qt modules and distribution model. Open-Meteo free plan is **noncommercial**, CC BY 4.0 attribution and subject to rate limits. Include provider credit and links in the demo; do not treat publicly readable API as unrestricted commercial usage. OpenAI plan-usage eligibility depends on the user's account and current program conditions.
+
+## First Windows AI integration
+
+See [15_AI_CONNECTION.md](15_AI_CONNECTION.md). Offline tests cover CNG RSA signature verification and JWT claim failures, PKCE/callback validation, chunked SSE completion/errors/limits and chat proposal-to-preview behavior. Live browser auth, token exchange, model access, inference and revocation are still unverified. Tokens and chat are memory-only; persistence/refresh/multiple accounts require further implementation.

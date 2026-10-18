@@ -11,9 +11,13 @@ qt_add_library(mutyva-core STATIC
     starter/src/InteractionState.cpp starter/src/InteractionState.h
     starter/src/BrandIdentity.cpp starter/src/BrandIdentity.h
     starter/src/LocalDataStore.cpp starter/src/LocalDataStore.h
+    starter/src/SiwcProtocol.cpp starter/src/SiwcProtocol.h
+    starter/src/ChatSession.cpp starter/src/ChatSession.h
+    starter/src/AiResponseStream.cpp starter/src/AiResponseStream.h
+    starter/src/AiChat.cpp starter/src/AiChat.h
 )
 target_include_directories(mutyva-core PUBLIC starter/src)
-target_link_libraries(mutyva-core PUBLIC Qt6::Core Qt6::Sql)
+target_link_libraries(mutyva-core PUBLIC Qt6::Core Qt6::Sql Qt6::Network Qt6::Gui)
 qt_add_resources(mutyva-core "runtime_data" PREFIX "/" FILES
     specs/app.schema.json specs/mutation.schema.json
     examples/city-pulse.mutyva.json examples/mutations/add-humidity-card.json
@@ -41,6 +45,9 @@ qt_add_qml_module(mutyva-demo
 include(cmake/Branding.cmake)
 target_compile_definitions(mutyva-demo PRIVATE MUTYVA_VERSION="${PROJECT_VERSION}")
 target_link_libraries(mutyva-demo PRIVATE mutyva-core Qt6::Quick Qt6::QuickControls2 Qt6::Network)
+if(WIN32)
+    target_link_libraries(mutyva-core PRIVATE bcrypt)
+endif()
 if(MSVC)
     target_compile_options(mutyva-core PRIVATE /utf-8)
     target_compile_options(mutyva-demo PRIVATE /utf-8)

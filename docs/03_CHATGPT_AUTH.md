@@ -1,6 +1,6 @@
-# Sign in with ChatGPT — Integration Blueprint (as of 2026-10-18)
+# Sign in with ChatGPT — Integration Blueprint (reviewed 2026-10-19)
 
-**Critical:** This is an IMPLEMENTATION PLAN grounded in the official OpenAI preview documentation, **not** a statement that OAuth is already implemented in the starter. Re-check linked pages before coding. ChatGPT plan usage is an optional permission for eligible open-source, locally hosted clients; it is not a generic unrestricted free API. Paid/remotely hosted distribution requires contacting OpenAI.
+**Current status:** a first Windows browser sign-in and Responses integration is implemented. See [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for exact behavior: memory-only tokens, re-sign-in on expiry, one saved registration, RS256/CNG verification; no persistent sessions or automatic refresh yet. Real account end-to-end verification remains pending. The complete target design below includes work not yet implemented. Re-check linked pages before coding. ChatGPT plan usage is an optional permission for eligible open-source, locally hosted clients; it is not a generic unrestricted free API. Paid/remotely hosted distribution requires contacting OpenAI.
 
 ## Official sources
 

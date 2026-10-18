@@ -1,5 +1,7 @@
 # Qt/C++ Architecture
 
+**Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
+
 ## Runtime layers
 
 ```mermaid
@@ -78,4 +80,4 @@ Full MVP uses SQLite catalog with `apps`, `generations`, `component_installation
 
 ## First integrated vertical slice
 
-The current implementation has live public API calls, QML, twelve component kinds, nested v2 declarations, four mutation operations, preview/apply/cancel, manual JSON editing and file-based generations. `mutyva-core` contains validation/mutations, `AppDocument`, inspectable AI context construction and `InteractionState` for generic SQLite-backed inputs/lists and allowlisted actions. Weather bindings are fixed. Delegates are recreated on configuration changes; local user data is keyed by app ID, stable widget ID and kind. Legacy v1 snapshots are retained during append-only migration. Fusion controls and an explicit dark palette keep the editor consistent. Generic business records, DataTable, full history browsing and real auth/inference remain future work.
+The current implementation has live public API calls, QML, twelve component kinds, nested v2 declarations, four mutation operations, preview/apply/cancel, manual JSON editing and file-based generations. `mutyva-core` contains validation/mutations, `AppDocument`, inspectable AI context construction and `InteractionState` for generic SQLite-backed inputs/lists and allowlisted actions. Weather bindings are fixed. Delegates are recreated on configuration changes; local user data is keyed by app ID, stable widget ID and kind. Legacy v1 snapshots are retained during append-only migration. Fusion controls and an explicit dark palette keep the editor consistent. Generic business records, DataTable, full history browsing remain future work. Windows ChatSession handles browser sign-in and identity verification; AiChat performs model discovery and SSE inference into the existing preview path. Real-account verification, protected persistent sessions and refresh are pending; see doc15.

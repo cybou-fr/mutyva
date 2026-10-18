@@ -1,5 +1,7 @@
 # Architecture Decision Record — Current Decisions Only
 
+**Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
+
 This is a **current-state** record, not a changelog of rejected speculative versions.
 
 | Topic | Decision |

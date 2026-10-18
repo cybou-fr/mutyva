@@ -36,13 +36,14 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
 | `docs/12_GENERAL_PALETTE.md` + `examples/general-workspace.mutyva.json` | Seven general components, nested v2 layouts and an interactive Notes example |
+| `docs/14_CHAT_FIRST_UX.md` + `docs/15_AI_CONNECTION.md` | Primary chat UX, Windows AI integration and honest verification limits |
 | `docs/13_LOCAL_DATA.md` | Persistent app-scoped SQLite data, transactional input/list actions and conflict recovery |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Main interface
 
-The main screen exposes **Чат с AI** and the running application. The chat drawer retains a draft while the app is open. AI is not connected yet, so sending is disabled with an explicit status. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
+The main screen exposes **Чат с AI** and the running application. Open the chat, choose **Continue with ChatGPT**, finish browser sign-in and send a request. The host prepares context internally and shows a preview for confirmation. The first Windows OAuth/Responses integration is implemented; live account verification is pending. Tokens and chat are memory-only for now; restart requires sign-in again. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
 
 ## Quickest path to a visible result
 
@@ -52,15 +53,15 @@ The main screen exposes **Чат с AI** and the running application. The chat d
 4. Press **+ Виджет влажности**: review the candidate interface, then press **Применить** to save a new generation or **Отмена** to discard it.
 5. Use **Изменить интерфейс** to add/remove/reorder components or edit their titles. **Редактор JSON** accepts a full declaration or a mutation; validation failures preserve the running document and HEAD.
 6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
-7. Implement `docs/03_CHATGPT_AUTH.md` and connect the real AI mutation request to the existing validation/preview/commit path.
+7. Return to normal mode with **Ctrl+Shift+D**, open **Чат с AI** and sign in. The first Windows integration connects messages to validation/preview/commit; verify with your eligible account. See `docs/15_AI_CONNECTION.md`.
 
-**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, generic SQL connectors, production auth/security review and iOS verification remain work items. Weather bindings are fixed; general controls use typed actions and persist input/list data separately in SQLite. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic values are kept by stable ID/kind, while weather search view state is not reconciled yet.
+**Important:** this is not the finished MVP. The chat and developer editor share the checked mutation path. Real-account OAuth/inference verification, protected persistent sessions, refresh, multi-account selection, generic SQL connectors, production auth/security review and iOS verification remain work items. Weather bindings are fixed; general controls use typed actions and persist input/list data separately in SQLite. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic values are kept by stable ID/kind, while weather search view state is not reconciled yet.
 
 ## Build and tests
 
 **Branding:** supplied artwork is integrated into README, application resources, first-run welcome/About and desktop/Android packaging. See [branding/README.md](branding/README.md) for exports, reproduction and platform verification notes. Runtime display branding preserves the previous data-storage namespace.
 
-**Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. No inference request is sent yet. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
+**Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. This developer-only preparation does not send inference; the normal chat sends only after verified sign-in and explicit Send. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
 
 **General palette:** press **Пример: заметки**, review and Apply. Text, Card, Stack, Row, Input, Button and List work without AI. Notes and input drafts persist in a separate SQLite database across restarts. Interface rollback does not roll back these data. **Перечитать данные** recovers from a stale-window conflict after showing an error. Qt SQL / QSQLITE is required. See `docs/12_GENERAL_PALETTE.md` and `docs/13_LOCAL_DATA.md`.
 
