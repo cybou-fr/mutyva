@@ -48,7 +48,7 @@ public:
         : QNetworkReply(parent), m_body(fixture.body) {
         setRequest(request); setUrl(request.url());
         setAttribute(QNetworkRequest::HttpStatusCodeAttribute, fixture.status);
-        setHeader(QNetworkRequest::ContentTypeHeader, QString::fromLatin1(fixture.contentType));
+        if (!fixture.contentType.isEmpty()) setHeader(QNetworkRequest::ContentTypeHeader, QString::fromLatin1(fixture.contentType));
         open(QIODevice::ReadOnly);
         if (!fixture.wait) QTimer::singleShot(0, this, [this, fixture] {
             if (isFinished()) return;
@@ -184,11 +184,27 @@ private slots:
         QCOMPARE(sent.value("store").toBool(true), false); QCOMPARE(sent.value("stream").toBool(), true);
         QCOMPARE(document.generation(), 1);
         document.cancelPreview();
+        // An HTTP 200 SSE failure makes the client abort. Qt reports network=5,
+        // but the server/decoder error must remain the primary user-facing explanation.
+        const auto smallCatalog = QByteArray("{\"models\":[{\"slug\":\"test-model\",\"visibility\":\"list\"}]}");
+        const auto failure = sse(QJsonObject{{"type", "response.failed"}, {"response", QJsonObject{{"error", QJsonObject{
+            {"code", "subscription_sharing_usage_limit_exceeded"}, {"message", "fixture-private-token"}}}}}});
+        network.fixtures = {HttpFixture{200, smallCatalog}, HttpFixture{200, failure, QNetworkReply::NoError, "text/event-stream"}};
+        QVERIFY(chat.send("Лимит внутри потока")); QTRY_VERIFY(!chat.busy());
+        QVERIFY(chat.status().contains("лимит")); QVERIFY(!chat.status().contains("подключение"));
+        QVERIFY(chat.diagnostics().contains("http=200")); QVERIFY(chat.diagnostics().contains("reason=usage_limit"));
+        QVERIFY(!chat.diagnostics().contains("fixture-private-token"));
+        QVERIFY(!document.hasPreview());
+        network.fixtures = {HttpFixture{200, smallCatalog}, HttpFixture{200, "data: not-json\n\n", QNetworkReply::NoError, "text/event-stream"}};
+        QVERIFY(chat.send("Ошибка декодирования")); QTRY_VERIFY(!chat.busy());
+        QVERIFY(chat.diagnostics().contains("reason=invalid_event_json"));
+        QVERIFY(chat.status().contains("прочитать ответ")); QVERIFY(!document.hasPreview());
+        const int beforeAuthFailure = network.requests.size();
         network.fixtures = {HttpFixture{401, "{\"error\":\"fixture-private-token\"}", QNetworkReply::AuthenticationRequiredError}};
         QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy());
         QVERIFY(chat.status().contains("войдите снова")); QVERIFY(chat.diagnostics().contains("http=401"));
         QVERIFY(!chat.diagnostics().contains("fixture-private-token")); QVERIFY(!chat.status().contains("fixture-private-token"));
-        QCOMPARE(network.requests.size(), 3); QVERIFY(!document.hasPreview());
+        QCOMPARE(network.requests.size(), beforeAuthFailure + 1); QVERIFY(!document.hasPreview());
         network.fixtures = {HttpFixture{200, "not json"}};
         QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.diagnostics().contains("reason=invalid_json"));
         network.fixtures = {HttpFixture{200, "{\"data\":[]}"}};
@@ -259,6 +275,25 @@ private slots:
         AiResponseStream tooLarge; QVERIFY(!tooLarge.feed(QByteArray(2 * 1024 * 1024 + 1, 'x')));
         AiResponseStream duplicate; QVERIFY(duplicate.feed(data)); QVERIFY(!duplicate.feed(data));
         AiResponseStream done; QVERIFY(done.feed(data + "data: [DONE]\n\n")); QVERIFY(done.finish());
+        AiResponseStream namedError;
+        QVERIFY(!namedError.feed("event: error\ndata: {\"error\":{\"code\":\"subscription_sharing_usage_unavailable\",\"message\":\"private\"}}\n\n"));
+        QCOMPARE(namedError.reason(), QString("service_unavailable"));
+        QVERIFY(!namedError.error().contains("private"));
+        AiResponseStream unsupported;
+        QVERIFY(!unsupported.feed(sse(QJsonObject{{"type", "error"}, {"code", "subscription_sharing_unsupported_capability"}, {"param", "input"}})));
+        QCOMPARE(unsupported.reason(), QString("unsupported_capability"));
+        QCOMPARE(unsupported.errorParameter(), QString("input"));
+        AiResponseStream unknown;
+        QVERIFY(!unknown.feed(sse(QJsonObject{{"type", "error"}, {"code", "secret-value"}, {"message", "secret-message"}, {"param", "secret-param"}})));
+        QCOMPARE(unknown.reason(), QString("server_error"));
+        QCOMPARE(unknown.errorParameter(), QString("other"));
+        QVERIFY(!unknown.error().contains("secret"));
+        // The outer completed response is authoritative if a gateway omits item.status.
+        auto gateway = completed(payload);
+        auto gatewayResponse = gateway.value("response").toObject();
+        auto gatewayItem = gatewayResponse.value("output").toArray().first().toObject(); gatewayItem.remove("status");
+        gatewayResponse["output"] = QJsonArray{gatewayItem}; gateway["response"] = gatewayResponse;
+        AiResponseStream gatewayStream; QVERIFY(gatewayStream.feed(sse(gateway))); QVERIFY(gatewayStream.finish());
         AiResponseStream prematureDone; QVERIFY(!prematureDone.feed("data: [DONE]\n\n"));
         auto invalid = completed(payload); auto response = invalid.value("response").toObject();
         response["output"] = QJsonArray{QJsonObject{{"type", "function_call"}}}; invalid["response"] = response;

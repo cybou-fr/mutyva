@@ -95,7 +95,7 @@ void AiChat::request(const QString &model) {
     request.setTransferTimeout(60000);
     auto *reply = m_network->post(request, bytes); m_reply = reply; reply->setReadBufferSize(64 * 1024);
     const auto epoch = m_epoch;
-    QTimer::singleShot(180000, reply, [reply] { if (!reply->isFinished()) reply->abort(); });
+    QTimer::singleShot(180000, reply, [reply] { if (!reply->isFinished()) { reply->setProperty("aiDeadline", true); reply->abort(); } });
     connect(reply, &QNetworkReply::readyRead, this, [this, reply, epoch] {
         if (epoch != m_epoch) return;
         const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -107,10 +107,10 @@ void AiChat::request(const QString &model) {
         m_reply.clear();
         const auto contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
         if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200 || !contentType.startsWith("text/event-stream")) {
-            serviceFailure("responses", reply, 0, "http_or_stream"); return;
+            serviceFailure("responses", reply, m_stream.bytesReceived(), !m_stream.reason().isEmpty() ? m_stream.reason() : reply->property("aiDeadline").toBool() ? "deadline" : "http_or_stream"); return;
         }
         if (!m_stream.feed(reply->isOpen() ? reply->readAll() : QByteArray()) || !m_stream.finish()) {
-            serviceFailure("responses", reply, 0, "incomplete_stream"); return;
+            serviceFailure("responses", reply, m_stream.bytesReceived(), m_stream.reason().isEmpty() ? "incomplete_stream" : m_stream.reason()); return;
         }
         const auto text = m_stream.text(); const int generation = m_generation;
         m_packet = {}; m_stream = AiResponseStream();
@@ -138,9 +138,12 @@ void AiChat::serviceFailure(const QString &stage, QNetworkReply *reply, qint64 b
     // Fixed stage/reason enums and numeric metadata only: never log bodies, headers, URLs, tokens or prompts.
     m_diagnostics = QString("AI stage=%1 http=%2 network=%3 bytes=%4 reason=%5")
         .arg(stage).arg(http).arg(network).arg(bytes).arg(reason);
+    if (stage == "responses" && !m_stream.errorParameter().isEmpty()) m_diagnostics += " param=" + m_stream.errorParameter();
     qInfo().noquote() << m_diagnostics;
     QString message;
-    if (http == 401) message = "ChatGPT отклонил сеанс. Выйдите и войдите снова.";
+    if (stage == "responses" && !m_stream.error().isEmpty()) message = m_stream.error();
+    else if (reason == "deadline") message = "ChatGPT не ответил за отведённое время. Попробуйте ещё раз.";
+    else if (http == 401) message = "ChatGPT отклонил сеанс. Выйдите и войдите снова.";
     else if (http == 403) message = "ChatGPT не разрешил доступ к AI. Проверьте разрешение использовать ваш тариф в настройках ChatGPT.";
     else if (http == 429) message = "Достигнут лимит ChatGPT. Попробуйте позже.";
     else if (http >= 500) message = "Сервис ChatGPT временно недоступен. Попробуйте позже.";
