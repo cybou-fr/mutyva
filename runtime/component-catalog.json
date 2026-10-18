@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "layout": "ordered-vertical-stack",
+  "components": [
+    {"kind":"city-search","title":"Поиск города","description":"Ввод названия города и поиск через Open-Meteo.","source":"geocoding","bindings":[{"path":"city.search","type":"string","access":"action-input"}],"actions":["searchCity"],"permissions":["network:*.open-meteo.com"]},
+    {"kind":"weather-card","title":"Текущая погода","description":"Температура и скорость ветра для выбранного города.","source":"weather","bindings":[{"path":"weather.current.temperature","type":"number","unit":"°C","access":"read-only"},{"path":"weather.current.wind","type":"number","unit":"km/h","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
+    {"kind":"forecast-list","title":"Прогноз на 7 дней","description":"Список дат, минимальной и максимальной температуры и осадков.","source":"weather","bindings":[{"path":"weather.daily","type":"array","items":{"date":"string","min":"number","max":"number","rain":"number"},"access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
+    {"kind":"air-card","title":"Качество воздуха","description":"European Air Quality Index выбранного города.","source":"airQuality","bindings":[{"path":"air.current.european_aqi","type":"integer","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
+    {"kind":"humidity-card","title":"Влажность воздуха","description":"Относительная влажность из уже загружаемого прогноза. Отдельный API-запрос не нужен.","source":"weather","bindings":[{"path":"weather.current.humidity","type":"integer","unit":"%","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]}
+  ]
+}

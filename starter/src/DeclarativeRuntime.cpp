@@ -21,10 +21,13 @@ bool check(const QJsonValue &value, const QJsonObject &rule, const QJsonObject &
            const QString &path, QString &error) {
     if (rule.contains("$ref")) {
         const QString ref = rule.value("$ref").toString();
-        const auto target = ref.startsWith("app.schema.json") ? schema("app") : root;
+        const auto hash = ref.indexOf('#');
+        const auto file = hash < 0 ? ref : ref.left(hash);
+        const auto target = file.isEmpty() ? root : schema(file.left(file.size() - QString(".schema.json").size()));
         QJsonValue resolved(target);
-        for (const auto &part : ref.mid(ref.indexOf('#') + 2).split('/'))
-            resolved = resolved.toObject().value(part);
+        if (hash >= 0 && hash + 1 < ref.size())
+            for (const auto &part : ref.mid(hash + 2).split('/'))
+                resolved = resolved.toObject().value(part);
         if (!resolved.isObject()) return fail(error, path, "Не найдена схема " + ref);
         return check(value, resolved.toObject(), target, path, error);
     }
@@ -80,20 +83,6 @@ bool check(const QJsonValue &value, const QJsonObject &rule, const QJsonObject &
     return true;
 }
 
-struct Component {
-    const char *kind;
-    const char *title;
-    const char *source;
-    const char *binding;
-};
-const Component components[] = {
-    {"city-search", "Поиск города", "geocoding", "city.search"},
-    {"weather-card", "Текущая погода", "weather", "weather.current"},
-    {"forecast-list", "Прогноз на 7 дней", "weather", "weather.daily"},
-    {"air-card", "Качество воздуха", "airQuality", "air.current.european_aqi"},
-    {"humidity-card", "Влажность воздуха", "weather", "weather.current.humidity"}
-};
-
 int indexOf(const QJsonArray &widgets, const QString &id) {
     for (qsizetype i = 0; i < widgets.size(); ++i)
         if (widgets[i].toObject().value("id").toString() == id) return static_cast<int>(i);
@@ -102,11 +91,33 @@ int indexOf(const QJsonArray &widgets, const QString &id) {
 }
 
 QVariantList DeclarativeRuntime::catalog() {
-    QVariantList result;
-    for (const auto &c : components)
-        result.append(QVariantMap{{"kind", c.kind}, {"title", QString::fromUtf8(c.title)},
-                                  {"source", c.source}, {"binding", c.binding}});
+    static const QVariantList result = [] {
+        QFile file(":/runtime/component-catalog.json");
+        if (!file.open(QIODevice::ReadOnly)) return QVariantList{};
+        auto components = QJsonDocument::fromJson(file.readAll()).object().value("components").toArray();
+        const auto title = schema("app").value("$defs").toObject().value("widget").toObject()
+                               .value("properties").toObject().value("title");
+        for (qsizetype i = 0; i < components.size(); ++i) {
+            auto entry = components[i].toObject();
+            entry.insert("version", 1);
+            entry.insert("writableProperties", QJsonObject{{"title", title}});
+            components[i] = entry;
+        }
+        return components.toVariantList();
+    }();
     return result;
+}
+
+QJsonObject DeclarativeRuntime::bundledSchema(const QString &name) {
+    if (name != "app" && name != "mutation" && name != "designer-response") return {};
+    return schema(name);
+}
+
+bool DeclarativeRuntime::validateDesignerResponse(const QJsonObject &response, QString &error) {
+    error.clear();
+    const auto rules = schema("designer-response");
+    if (rules.isEmpty()) return fail(error, "$", "Схема ответа дизайнера недоступна");
+    return check(response, rules, rules, "$", error);
 }
 
 bool DeclarativeRuntime::validateDocument(const QJsonObject &document, QString &error) {
@@ -135,11 +146,12 @@ bool DeclarativeRuntime::validateDocument(const QJsonObject &document, QString &
         if (ids.contains(id)) return fail(error, "$.widgets", "Повтор ID " + id);
         ids.insert(id);
         bool registered = false;
-        for (const auto &c : components) {
-            if (widget.value("kind").toString() != QLatin1String(c.kind)) continue;
+        for (const auto &entry : catalog()) {
+            const auto c = entry.toMap();
+            if (widget.value("kind").toString() != c.value("kind").toString()) continue;
             registered = true;
-            if (!sources.contains(QLatin1String(c.source)))
-                return fail(error, "$.widgets." + id, "Нет источника " + QString::fromLatin1(c.source));
+            if (!sources.contains(c.value("source").toString()))
+                return fail(error, "$.widgets." + id, "Нет источника " + c.value("source").toString());
         }
         if (!registered) return fail(error, "$.widgets." + id, "Компонент не зарегистрирован");
     }

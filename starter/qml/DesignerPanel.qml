@@ -15,6 +15,11 @@ ColumnLayout {
         text: "Выберите изменение, проверьте результат ниже и нажмите «Применить»."
         color: "#a3b0c8"; wrapMode: Text.WordWrap; Layout.fillWidth: true
     }
+    Label {
+        text: appDocument.catalog[kindPicker.currentIndex]
+              ? appDocument.catalog[kindPicker.currentIndex].description : ""
+        color: "#a3b0c8"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+    }
     Flow {
         Layout.fillWidth: true
         Layout.preferredHeight: childrenRect.height
@@ -92,7 +97,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: childrenRect.height
             spacing: 8
-            ComboBox { id: jsonMode; model: ["Декларация приложения", "Мутация"] }
+            ComboBox { id: jsonMode; model: ["Декларация приложения", "Мутация", "Ответ AI"] }
             Button {
                 text: "Текущий документ"
                 onClicked: { jsonMode.currentIndex = 0; jsonInput.text = appDocument.documentJson }
@@ -126,8 +131,12 @@ ColumnLayout {
         Button {
             text: "Проверить и показать"
             enabled: !appDocument.hasPreview
-            onClicked: jsonMode.currentIndex === 0 ? appDocument.previewDocument(jsonInput.text)
-                                                   : appDocument.previewMutation(jsonInput.text)
+            onClicked: {
+                if (jsonMode.currentIndex === 0) appDocument.previewDocument(jsonInput.text)
+                else if (jsonMode.currentIndex === 1) appDocument.previewMutation(jsonInput.text)
+                else appDocument.previewDesignerResponse(jsonInput.text)
+            }
         }
     }
+    DesignerContextPanel { Layout.fillWidth: true }
 }

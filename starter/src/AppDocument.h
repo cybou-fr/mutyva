@@ -14,6 +14,8 @@ class AppDocument : public QObject {
     Q_PROPERTY(bool hasPreview READ hasPreview NOTIFY documentChanged)
     Q_PROPERTY(QVariantList previewWidgets READ previewWidgets NOTIFY documentChanged)
     Q_PROPERTY(QString previewSummary READ previewSummary NOTIFY documentChanged)
+    Q_PROPERTY(QString designerContextJson READ designerContextJson NOTIFY designerChanged)
+    Q_PROPERTY(QString designerMessage READ designerMessage NOTIFY designerChanged)
 public:
     explicit AppDocument(QObject *parent = nullptr, const QString &storageFolder = {});
     QVariantList widgets() const;
@@ -22,6 +24,8 @@ public:
     bool hasPreview() const { return !m_candidate.isEmpty(); }
     QVariantList previewWidgets() const;
     QString previewSummary() const { return m_summary; }
+    QString designerContextJson() const { return m_designerContext; }
+    QString designerMessage() const { return m_designerMessage; }
     int generation() const { return m_generation; }
     QString lastError() const { return m_error; }
     Q_INVOKABLE bool addHumidityCard();
@@ -35,8 +39,11 @@ public:
     Q_INVOKABLE bool moveWidget(const QString &id, const QString &after);
     Q_INVOKABLE bool applyPreview();
     Q_INVOKABLE void cancelPreview();
+    Q_INVOKABLE bool prepareDesignerContext(const QString &request);
+    Q_INVOKABLE bool previewDesignerResponse(const QString &json);
 signals:
     void documentChanged();
+    void designerChanged();
 private:
     bool loadDocument(const QString &path, QJsonObject &out);
     bool commit(const QJsonObject &newDocument);
@@ -51,4 +58,7 @@ private:
     QJsonObject m_candidate;
     QString m_summary;
     bool m_storageReady = true;
+    QString m_designerContext;
+    QString m_designerMessage;
+    int m_contextGeneration = 0;
 };

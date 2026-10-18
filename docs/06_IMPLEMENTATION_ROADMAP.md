@@ -37,6 +37,8 @@ Current persistence adds a writer lock, stale-HEAD rejection and avoids reusing 
 
 ## Slice 3 — Sign in with ChatGPT (critical feasibility gate)
 
+Preparation for AI integration is now implemented locally: shared component catalog with property/binding/action metadata, trusted designer instructions, bounded inspectable context and a checked proposal/clarification/unsupported response envelope. See `11_AI_DESIGN_CONTRACT.md`. This does not implement auth or inference.
+
 - [ ] Implement official dynamic OAuth registration with host ID, PKCE, state and nonce.
 - [ ] Verify OIDC ID token signature/issuer/audience/nonce, granted plan scope.
 - [ ] Secure OS credential storage; refresh and disconnect.

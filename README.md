@@ -28,6 +28,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `examples/` | Declarative City Pulse and an example mutation |
 | `starter/` + root `CMakeLists.txt` | Qt 6 editor with live APIs, schema-checked documents, four mutation operations and preview |
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
+| `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Quickest path to a visible result
@@ -43,6 +44,8 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 **Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Data bindings are fixed per registered component, not user expressions. The schema checker implements the vocabulary used by the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; stable-ID preservation of transient control state is future work.
 
 ## Build and tests
+
+**Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. No inference request is sent yet. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
 
 Enable tests with `-DBUILD_TESTING=ON` (requires the Qt Test module), build, then run `ctest --test-dir build -C Release --output-on-failure`. Tests use temporary stores and offline QML rendering; they do not modify the user's saved generations or contact weather APIs. Use `-DBUILD_TESTING=OFF` for an application-only build.
 

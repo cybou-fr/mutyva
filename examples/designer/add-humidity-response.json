@@ -1,0 +1,12 @@
+{
+  "status": "proposal",
+  "message": "Предлагаю добавить влажность из уже загружаемых данных после прогноза.",
+  "mutation": {
+    "schemaVersion": 1,
+    "appId": "official.city-pulse",
+    "intent": "Добавить карточку влажности после прогноза",
+    "operations": [
+      {"op":"addWidget","widget":{"id":"humidity","kind":"humidity-card","title":"Влажность воздуха"},"after":"forecast"}
+    ]
+  }
+}

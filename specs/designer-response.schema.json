@@ -1,0 +1,9 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://mutyva.invalid/specs/designer-response.schema.json",
+  "title":"MUTYVA designer response",
+  "oneOf":[
+    {"type":"object","required":["status","mutation"],"properties":{"status":{"const":"proposal"},"message":{"type":"string","maxLength":600},"mutation":{"$ref":"mutation.schema.json"}},"additionalProperties":false},
+    {"type":"object","required":["status","message"],"properties":{"status":{"enum":["clarification","unsupported"]},"message":{"type":"string","minLength":1,"maxLength":600}},"additionalProperties":false}
+  ]
+}

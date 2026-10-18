@@ -1,5 +1,6 @@
 #include "AppDocument.h"
 #include "DeclarativeRuntime.h"
+#include "DesignerContext.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QFile>
@@ -118,6 +119,10 @@ bool AppDocument::commit(const QJsonObject &next) {
         return reject("Не удалось обновить HEAD; предыдущее поколение сохранено");
     m_document = next;
     m_generation = n;
+    m_contextGeneration = 0;
+    m_designerContext.clear();
+    m_designerMessage.clear();
+    emit designerChanged();
     m_candidate = {};
     m_summary.clear();
     m_error.clear();
@@ -250,4 +255,43 @@ bool AppDocument::resetDemo() {
     QJsonObject initial;
     if (!loadDocument(":/examples/city-pulse.mutyva.json", initial)) return reject(m_error);
     return stage(initial, "Восстановить исходный интерфейс");
+}
+
+bool AppDocument::prepareDesignerContext(const QString &request) {
+    QJsonObject packet;
+    QString error;
+    m_contextGeneration = 0;
+    m_designerContext.clear();
+    m_designerMessage.clear();
+    if (hasPreview() || !DesignerContext::build(m_document, m_generation, request, packet, error)) {
+        if (hasPreview()) error = "Сначала примените или отмените предпросмотр";
+        emit designerChanged();
+        return reject(error);
+    }
+    m_contextGeneration = m_generation;
+    m_designerContext = QString::fromUtf8(QJsonDocument(packet).toJson(QJsonDocument::Indented));
+    m_designerMessage = "Контекст подготовлен локально. Отправки в AI ещё нет.";
+    m_error.clear();
+    emit documentChanged();
+    emit designerChanged();
+    return true;
+}
+
+bool AppDocument::previewDesignerResponse(const QString &json) {
+    cancelPreview();
+    m_designerMessage.clear();
+    emit designerChanged();
+    if (m_contextGeneration < 1 || m_contextGeneration != m_generation)
+        return reject("Сначала подготовьте контекст для текущего поколения");
+    QJsonObject response;
+    QString error;
+    if (!parse(json, response, error) || !DeclarativeRuntime::validateDesignerResponse(response, error))
+        return reject(error);
+    if (response.value("status").toString() == "proposal") {
+        if (!previewMutation(QString::fromUtf8(QJsonDocument(response.value("mutation").toObject()).toJson())))
+            return false;
+    }
+    m_designerMessage = response.value("message").toString();
+    emit designerChanged();
+    return true;
 }
