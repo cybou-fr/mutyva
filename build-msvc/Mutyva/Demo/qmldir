@@ -1,0 +1,7 @@
+module Mutyva.Demo
+typeinfo mutyva-demo.qmltypes
+prefer :/qt/qml/Mutyva/Demo/
+Main 1.0 Main.qml
+WidgetHost 1.0 WidgetHost.qml
+depends QtQuick
+

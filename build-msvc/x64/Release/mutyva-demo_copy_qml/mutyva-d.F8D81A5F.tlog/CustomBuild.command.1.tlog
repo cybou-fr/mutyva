@@ -1,0 +1,28 @@
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\BUILD-MSVC\CMAKEFILES\CEDD6BE0EE380CAC6ADD3819C5A138C1\MUTYVA-DEMO_QML.TXT.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -DFILES_INFO_PATH=C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/mutyva-demo_qml.cmake -P C:/Qt/6.12.0/msvc2022_64/lib/cmake/Qt6Qml/Qt6QmlCopyFiles.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\BUILD-MSVC\CMAKEFILES\003EA46EC63162835852363D1FB82DDE\MUTYVA-DEMO_COPY_QML.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/cybou/Desktop/mutyva -BC:/Users/cybou/Desktop/mutyva/build-msvc --check-stamp-file C:/Users/cybou/Desktop/mutyva/build-msvc/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

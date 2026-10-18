@@ -1,0 +1,2 @@
+C:/Users/cybou/Desktop/mutyva/build-msvc/mutyva-demo_autogen/include_Release/2Y5AIOI4LB/moc_AppDocument.cpp.json
+C:/Users/cybou/Desktop/mutyva/build-msvc/mutyva-demo_autogen/include_Release/2Y5AIOI4LB/moc_WeatherService.cpp.json

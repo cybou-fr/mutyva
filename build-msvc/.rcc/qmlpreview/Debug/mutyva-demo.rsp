@@ -1,0 +1,8 @@
+--interactive
+--resource
+C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/rcc/qmake_Mutyva_Demo.qrc
+--resource
+C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/rcc/mutyva-demo_raw_qml_0.qrc
+--resource
+C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/rcc/demo_data.qrc
+C:/Users/cybou/Desktop/mutyva/build-msvc/Debug/mutyva-demo.exe

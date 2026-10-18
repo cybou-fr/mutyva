@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="/qt/qml/Mutyva/Demo/">
+    <file alias="Main.qml">C:/Users/cybou/Desktop/mutyva/starter/qml/Main.qml</file>
+    <file alias="WidgetHost.qml">C:/Users/cybou/Desktop/mutyva/starter/qml/WidgetHost.qml</file>
+  </qresource>
+</RCC>
+

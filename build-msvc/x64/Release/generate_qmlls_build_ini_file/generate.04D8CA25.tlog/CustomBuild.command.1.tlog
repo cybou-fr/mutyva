@@ -1,0 +1,38 @@
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\BUILD-MSVC\CMAKEFILES\CEDD6BE0EE380CAC6ADD3819C5A138C1\.QMLLS.BUILD.INI.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo [General] > C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo version=2 >> C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append docDir= >> C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+C:\Qt\6.12.0\msvc2022_64\bin\qtpaths.exe --query QT_INSTALL_DOCS >> C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo [workspaces] >> C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E cat C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini.part >> C:/Users/cybou/Desktop/mutyva/build-msvc/.qt/.qmlls.build.ini
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\BUILD-MSVC\CMAKEFILES\003EA46EC63162835852363D1FB82DDE\GENERATE_QMLLS_BUILD_INI_FILE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\CYBOU\DESKTOP\MUTYVA\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/cybou/Desktop/mutyva -BC:/Users/cybou/Desktop/mutyva/build-msvc --check-stamp-file C:/Users/cybou/Desktop/mutyva/build-msvc/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
