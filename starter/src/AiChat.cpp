@@ -107,8 +107,9 @@ void AiChat::request(const QString &model) {
     connect(reply, &QNetworkReply::finished, this, [this, reply, epoch] {
         reply->deleteLater(); if (epoch != m_epoch) return;
         m_reply.clear();
-        const auto contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
-        if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200 || !contentType.startsWith("text/event-stream")) {
+        // Some direct-route responses carry valid SSE under a different media type.
+        // Successful HTTP plus a fully validated completed SSE stream is authoritative.
+        if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
             serviceFailure("responses", reply, m_stream.bytesReceived(), !m_stream.reason().isEmpty() ? m_stream.reason() : reply->property("aiDeadline").toBool() ? "deadline" : "http_or_stream"); return;
         }
         if (!m_stream.feed(reply->isOpen() ? reply->readAll() : QByteArray()) || !m_stream.finish()) {

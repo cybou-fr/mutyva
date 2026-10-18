@@ -67,3 +67,11 @@ AppDocument проверяет envelope, схему мутации, семант
 Тесты проверяют commentary + final, сообщения без phase, компактный terminal output, текстовые done-события, обрыв, ошибку после done и несовпадение представлений. Транспортный тест доводит ответ с двумя assistant messages до предпросмотра. Диагностика дополняется только счётчиками структуры, без текста ответа.
 
 Основание: [Streaming events](https://developers.openai.com/api/reference/resources/responses/streaming-events) и [assistant message phase](https://developers.openai.com/api/reference/resources/responses/methods/create).
+
+## Исправление проверки Content-Type
+
+Последний реальный журнал: HTTP 200, network=0, 34388 байтов, reason=http_or_stream, messages=0 и по одному streamed_items/text_done. В соответствующей ветке кода при HTTP 200 и network=0 единственным оставшимся условием отказа был Content-Type. Сам SSE-декодер уже успешно собрал текст из отдельных done-событий и завершил response.completed.
+
+Удалён отказ исключительно по заголовку media type. Теперь успешный HTTP-ответ принимается только после полноценного разбора SSE и response.completed, извлечения финального текста, проверки envelope/мутации и исходного поколения. Обычный JSON с HTTP 200, неверный поток или поток без completion остаются ошибкой. Это исправление совместимости заголовка, а не ослабление проверки результата.
+
+Регрессионный тест воспроизводит наблюдавшуюся форму (terminal output пустой, output_item.done и output_text.done присутствуют), с application/json, отсутствующим Content-Type и иным регистром text/event-stream. Во всех трёх случаях корректный поток доходит до предпросмотра. Отдельно проверяются отказ для обычного JSON и незавершённого SSE.

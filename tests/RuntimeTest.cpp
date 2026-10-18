@@ -263,6 +263,41 @@ private slots:
         QSKIP("Windows CNG verifier; other platforms are disabled");
 #endif
     }
+    void aiValidStreamWithAlternateContentType() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        ChatSession session;
+        session.m_access = "fixture-private-token";
+        session.m_expires = QDateTime::currentSecsSinceEpoch() + 3600;
+        FixtureNetwork network;
+        AiChat chat(&document, &session, nullptr, &network);
+        const auto fixture = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json"));
+        auto final = completed(json(fixture)).value("response").toObject().value("output").toArray().first().toObject();
+        final["phase"] = "final_answer";
+        const auto actualShape = sse(QJsonObject{{"type", "response.output_text.done"}, {"output_index", 0},
+            {"content_index", 0}, {"text", json(fixture)}}) +
+            sse(QJsonObject{{"type", "response.output_item.done"}, {"output_index", 0}, {"item", final}}) +
+            sse(QJsonObject{{"type", "response.completed"}, {"response", QJsonObject{{"status", "completed"}, {"output", QJsonArray()}}}});
+        const auto catalog = QByteArray("{\"models\":[{\"slug\":\"test-model\",\"visibility\":\"list\"}]}");
+        for (const auto &contentType : {QByteArray("application/json; charset=utf-8"), QByteArray(), QByteArray("Text/Event-Stream")}) {
+            network.fixtures = {HttpFixture{200, catalog}, HttpFixture{200, actualShape, QNetworkReply::NoError, contentType}};
+            QVERIFY(chat.send("Добавь влажность")); QTRY_VERIFY(!chat.busy());
+            QVERIFY2(document.hasPreview(), qPrintable(chat.status() + " " + chat.diagnostics()));
+            QCOMPARE(document.generation(), 1);
+            document.cancelPreview();
+        }
+        // An ordinary JSON body is not SSE and must not be accepted just because HTTP succeeded.
+        network.fixtures = {HttpFixture{200, catalog}, HttpFixture{200, json(fixture).toUtf8(), QNetworkReply::NoError, "application/json"}};
+        QVERIFY(chat.send("Добавь влажность")); QTRY_VERIFY(!chat.busy());
+        QVERIFY(!document.hasPreview()); QCOMPARE(document.generation(), 1);
+        QVERIFY(chat.diagnostics().contains("truncated_stream"));
+        // Correct media type alone cannot rescue an interrupted stream either.
+        network.fixtures = {HttpFixture{200, catalog}, HttpFixture{200,
+            sse(QJsonObject{{"type", "response.output_item.done"}, {"output_index", 0}, {"item", final}}),
+            QNetworkReply::NoError, "text/event-stream"}};
+        QVERIFY(chat.send("Добавь влажность")); QTRY_VERIFY(!chat.busy());
+        QVERIFY(!document.hasPreview()); QCOMPARE(document.generation(), 1);
+    }
     void aiStreamFinalAssembly() {
         const QString payload = "{\"status\":\"clarification\",\"message\":\"Какой город?\"}";
         auto final = completed(payload).value("response").toObject().value("output").toArray().first().toObject();
