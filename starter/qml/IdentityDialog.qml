@@ -45,12 +45,12 @@ Dialog {
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Label {
-                text: "Собирайте свой инструмент из компонентов, проверяйте изменения в предпросмотре и сохраняйте поколения интерфейса."
+                text: "Расскажите в чате, что вам нужно. MUTYVA задумана как приложение, которое меняется под ваши задачи."
                 font.pixelSize: 14
                 color: brandIdentity.colors.muted; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Label {
-                text: "Локальный runtime · 12 компонентов · история конфигурации\nАвторизация ChatGPT и AI-дизайнер ещё в разработке."
+                text: "Чат с AI пока не подключён. Сейчас можно пользоваться погодой и сохранёнными инструментами."
                 font.pixelSize: 13
                 color: brandIdentity.colors.cyan; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }

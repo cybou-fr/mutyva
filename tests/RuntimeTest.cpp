@@ -231,6 +231,25 @@ private slots:
         auto *header = window->findChild<QObject *>("brandHeaderIcon");
         QVERIFY(header);
         QTRY_COMPARE(header->property("status").toInt(), 1); // Image.Ready
+        auto *chatButton = window->findChild<QObject *>("openChat");
+        auto *chat = window->findChild<QObject *>("aiChat");
+        QVERIFY(chatButton && chat);
+        QVERIFY(!window->property("editorOpen").toBool());
+        QVERIFY(!window->findChild<QObject *>("reloadData")->property("visible").toBool());
+        QVERIFY(QMetaObject::invokeMethod(chatButton, "clicked"));
+        QTRY_VERIFY(chat->property("visible").toBool());
+        auto *composer = chat->findChild<QObject *>("chatComposer");
+        QVERIFY(composer);
+        composer->setProperty("text", "Список задач");
+        QVERIFY(!chat->findChild<QObject *>("sendChatMessage")->property("enabled").toBool());
+        QVERIFY(QMetaObject::invokeMethod(chat, "close"));
+        QVERIFY(QMetaObject::invokeMethod(chatButton, "clicked"));
+        QTRY_VERIFY(chat->property("visible").toBool());
+        QCOMPARE(composer->property("text").toString(), QString("Список задач"));
+        window->resize(360, 640);
+        QTRY_VERIFY(chat->property("width").toDouble() <= 360);
+        QVERIFY(QMetaObject::invokeMethod(chat, "close"));
+        window->resize(1020, 760);
         auto *aboutButton = window->findChild<QObject *>("openAbout");
         auto *about = window->findChild<QObject *>("aboutDialog");
         QVERIFY(aboutButton && about);

@@ -32,10 +32,11 @@ set_source_files_properties(starter/qml/DesignerPanel.qml PROPERTIES QT_RESOURCE
 set_source_files_properties(starter/qml/DesignerContextPanel.qml PROPERTIES QT_RESOURCE_ALIAS "DesignerContextPanel.qml")
 set_source_files_properties(starter/qml/GeneralWidget.qml PROPERTIES QT_RESOURCE_ALIAS "GeneralWidget.qml")
 set_source_files_properties(starter/qml/IdentityDialog.qml PROPERTIES QT_RESOURCE_ALIAS "IdentityDialog.qml")
+set_source_files_properties(starter/qml/ChatPanel.qml PROPERTIES QT_RESOURCE_ALIAS "ChatPanel.qml")
 qt_add_qml_module(mutyva-demo
     URI Mutyva.Demo
     VERSION 1.0
-    QML_FILES starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml starter/qml/GeneralWidget.qml starter/qml/IdentityDialog.qml
+    QML_FILES starter/qml/ChatPanel.qml starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml starter/qml/GeneralWidget.qml starter/qml/IdentityDialog.qml
 )
 include(cmake/Branding.cmake)
 target_compile_definitions(mutyva-demo PRIVATE MUTYVA_VERSION="${PROJECT_VERSION}")

@@ -23,6 +23,8 @@ ApplicationWindow {
     palette.placeholderText: root.muted
     IdentityDialog { id: welcomeDialog; welcomeMode: true }
     IdentityDialog { id: aboutDialog }
+    ChatPanel { id: chatPanel; parent: Overlay.overlay }
+    Shortcut { sequence: "Ctrl+Shift+D"; onActivated: root.editorOpen = !root.editorOpen }
     Component.onCompleted: { if (brandIdentity.welcomeRequired) welcomeDialog.open() }
 
     ScrollView {
@@ -48,7 +50,7 @@ ApplicationWindow {
                     Text { text: "One App. Infinite Forms."; color: brandIdentity.colors.cyan; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
-                Label { text: "Поколение " + appDocument.generation; color: root.muted }
+                Button { objectName: "openChat"; text: "Чат с AI"; onClicked: chatPanel.open() }
             }
             Text {
                 text: "Одно приложение. Любая форма."
@@ -57,7 +59,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
             Text {
-                text: "Реальные данные Open-Meteo. Интерфейс собран из локальной JSON-декларации."
+                text: "Откройте чат и расскажите, какое приложение вам нужно."
                 color: root.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true
             }
             Flow {
@@ -66,34 +68,40 @@ ApplicationWindow {
                 spacing: 8
                 Button { objectName: "openAbout"; text: "О MUTYVA"; onClicked: aboutDialog.open() }
                 Button {
+                    visible: root.editorOpen
                     objectName: "reloadData"; text: "Перечитать данные"
                     onClicked: interactionState.reload()
                     ToolTip.visible: hovered
-                    ToolTip.text: "SQLite: " + interactionState.storagePath
+                    ToolTip.text: "Загрузить сохранённые данные заново"
                 }
-                Button { text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
-                Button { text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
-                Button { text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
-                Button { text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
-                Button { text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }
+                Button { visible: root.editorOpen; text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
+                Button { visible: root.editorOpen; text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
+                Button { visible: root.editorOpen; text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
+                Button { visible: root.editorOpen; text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
+                Button { visible: root.editorOpen; text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }
             }
             DesignerPanel { visible: root.editorOpen; Layout.fillWidth: true }
             Text {
-                text: appDocument.lastError.length ? appDocument.lastError : interactionState.lastError.length ? interactionState.lastError : weatherService.status
+                text: root.editorOpen ? (appDocument.lastError.length ? appDocument.lastError : interactionState.lastError.length ? interactionState.lastError : weatherService.status) : (!interactionState.ready ? "Не удалось загрузить ваши данные. Попробуйте ещё раз." : appDocument.lastError.length ? "Не удалось применить изменение. Попробуйте ещё раз." : weatherService.status)
                 color: appDocument.lastError.length || interactionState.lastError.length ? "#ffaeae" : root.muted
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
+            }
+            Button {
+                text: "Повторить загрузку данных"
+                visible: !interactionState.ready
+                onClicked: interactionState.reload()
             }
             ColumnLayout {
                 visible: appDocument.hasPreview
                 Layout.fillWidth: true
                 Label { text: "Предпросмотр · ещё не сохранено"; color: brandIdentity.colors.cyan; font.bold: true; font.pixelSize: 18 }
                 Label {
-                    text: appDocument.previewSummary
+                    text: root.editorOpen ? appDocument.previewSummary : "Посмотрите, как будет выглядеть приложение, и подтвердите изменение."
                     textFormat: Text.PlainText
                     color: root.fg; wrapMode: Text.WordWrap; Layout.fillWidth: true
                 }
                 Label {
-                    text: "Ниже показан будущий интерфейс. Источники данных и разрешения сохранены."
+                    text: "Изменения сохранятся после подтверждения."
                     color: root.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true
                 }
                 RowLayout {
@@ -112,7 +120,7 @@ ApplicationWindow {
             }
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: "#26344d" }
             Text {
-                text: "MUTYVA · Локальный редактор, проверка деклараций и предпросмотр мутаций. AI и OAuth — следующие этапы.\nДанные Open-Meteo · CC BY 4.0 · Некоммерческая демонстрация."
+                text: "Данные Open-Meteo · CC BY 4.0 · Некоммерческая демонстрация."
                 color: root.muted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Item { Layout.preferredHeight: 20 }

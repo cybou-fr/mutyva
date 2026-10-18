@@ -40,11 +40,15 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
+## Main interface
+
+The main screen exposes **Чат с AI** and the running application. The chat drawer retains a draft while the app is open. AI is not connected yet, so sending is disabled with an explicit status. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
+
 ## Quickest path to a visible result
 
 1. Install **Qt 6.8+** with Qt Quick, Qt Quick Controls, Qt SQL with QSQLITE and the desktop kit, CMake and C++20 toolchain.
 2. Open the root `CMakeLists.txt` in Qt Creator, or use `qt-cmake -S . -B build` then `cmake --build build --config Release`.
-3. Run `mutyva-demo` with internet access. It searches **Paris** and displays weather, a seven-day forecast and air quality via Open-Meteo.
+3. Run `mutyva-demo` with internet access. Use **Ctrl+Shift+D** to reveal the development tools described below. It searches **Paris** and displays weather, a seven-day forecast and air quality via Open-Meteo.
 4. Press **+ Виджет влажности**: review the candidate interface, then press **Применить** to save a new generation or **Отмена** to discard it.
 5. Use **Изменить интерфейс** to add/remove/reorder components or edit their titles. **Редактор JSON** accepts a full declaration or a mutation; validation failures preserve the running document and HEAD.
 6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
