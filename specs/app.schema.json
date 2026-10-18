@@ -13,9 +13,9 @@
       "type": "array", "maxItems": 100,
       "items": {"$ref": "#/$defs/widget"}
     },
-    "dataSources": {"type": "array", "items": {"$ref": "#/$defs/source"}},
+    "dataSources": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/source"}},
     "permissions": {
-      "type": "array", "uniqueItems": true,
+      "type": "array", "maxItems": 16, "uniqueItems": true,
       "items": {"type": "string", "maxLength": 128}
     }
   },
@@ -33,7 +33,7 @@
     "source": {
       "type": "object", "required": ["id", "kind", "provider"],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
+        "id": {"type": "string", "minLength": 1, "maxLength": 64},
         "kind": {"enum": ["rest"]},
         "provider": {"enum": ["open-meteo"]}
       },

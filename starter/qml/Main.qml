@@ -11,6 +11,16 @@ ApplicationWindow {
     color: "#101625"
     property color fg: "#f0f5ff"
     property color muted: "#a3b0c8"
+    property bool editorOpen: false
+    palette.window: "#101625"
+    palette.windowText: "#f0f5ff"
+    palette.text: "#f0f5ff"
+    palette.base: "#1c2840"
+    palette.button: "#26344d"
+    palette.buttonText: "#f0f5ff"
+    palette.highlight: "#2864b1"
+    palette.highlightedText: "white"
+    palette.placeholderText: "#a3b0c8"
 
     ScrollView {
         anchors.fill: parent
@@ -50,17 +60,38 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.preferredHeight: childrenRect.height
                 spacing: 8
-                Button { text: "+ Виджет влажности"; onClicked: appDocument.addHumidityCard() }
-                Button { text: "Откат поколения"; onClicked: appDocument.rollback() }
-                Button { text: "Сбросить интерфейс"; onClicked: appDocument.resetDemo() }
+                Button { text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
+                Button { text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
+                Button { text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
+                Button { text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }
             }
+            DesignerPanel { visible: root.editorOpen; Layout.fillWidth: true }
             Text {
                 text: appDocument.lastError.length ? appDocument.lastError : weatherService.status
                 color: appDocument.lastError.length ? "#ffaeae" : root.muted
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
+            ColumnLayout {
+                visible: appDocument.hasPreview
+                Layout.fillWidth: true
+                Label { text: "Предпросмотр · ещё не сохранено"; color: "#9befdc"; font.bold: true; font.pixelSize: 18 }
+                Label {
+                    text: appDocument.previewSummary
+                    textFormat: Text.PlainText
+                    color: root.fg; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                }
+                Label {
+                    text: "Ниже показан будущий интерфейс. Источники данных и разрешения сохранены."
+                    color: root.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                }
+                RowLayout {
+                    Button { objectName: "applyMutation"; text: "Применить"; onClicked: appDocument.applyPreview() }
+                    Button { objectName: "cancelMutation"; text: "Отмена"; onClicked: appDocument.cancelPreview() }
+                }
+            }
             Repeater {
-                model: appDocument.widgets
+                objectName: "widgetRepeater"
+                model: appDocument.hasPreview ? appDocument.previewWidgets : appDocument.widgets
                 delegate: WidgetHost {
                     required property var modelData
                     definition: modelData
@@ -69,7 +100,7 @@ ApplicationWindow {
             }
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: "#26344d" }
             Text {
-                text: "MUTYVA 0.1 proof of concept · Без AI и OAuth в этом стартере. Auth и AI Mutation Engine описаны в документации.\nДанные Open-Meteo · CC BY 4.0 · Некоммерческая демонстрация."
+                text: "MUTYVA · Локальный редактор, проверка деклараций и предпросмотр мутаций. AI и OAuth — следующие этапы.\nДанные Open-Meteo · CC BY 4.0 · Некоммерческая демонстрация."
                 color: root.muted; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             Item { Layout.preferredHeight: 20 }

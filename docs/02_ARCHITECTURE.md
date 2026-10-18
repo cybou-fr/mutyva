@@ -78,4 +78,4 @@ Full MVP uses SQLite catalog with `apps`, `generations`, `component_installation
 
 ## First integrated vertical slice
 
-The starter chooses the lightest functional subset: live public API calls, QML, local JSON declaration and immutable generations. Do not multiply abstractions until the real AI vertical slice is proven.
+The current implementation has live public API calls, QML, a schema-checked local declaration, a five-kind catalog, four ordered mutation operations, preview/apply/cancel, manual JSON editing and file-based generations. `mutyva-core` contains `DeclarativeRuntime` and `AppDocument`; the renderer still uses fixed typed weather bindings and recreates delegates on document changes. The Fusion control style and explicit dark palette keep the editor consistent across desktop styles. Do not multiply abstractions until the real AI vertical slice is proven.

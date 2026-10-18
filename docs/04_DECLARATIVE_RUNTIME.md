@@ -25,6 +25,14 @@ See `specs/app.schema.json` and `specs/mutation.schema.json` (JSON Schema 2020-1
 
 No free-form Qt objects, arbitrary expressions, system commands, shell, filesystem writes, SQL snippets or executable URLs in the declarative grammar.
 
+### Implemented local editor
+
+`DeclarativeRuntime` loads the bundled app and mutation schemas, checks their supported vocabulary and enforces unique widget/source IDs, registered component kinds, required fixed sources and the Open-Meteo permission allowlist. It constructs a candidate copy and only returns it after the entire ordered batch validates. Application declarations loaded from disk also pass this validation.
+
+All four operations are available from **Изменить интерфейс**, and JSON can be pasted/edited as a declaration or mutation. `updateProperty` currently allows only a string `title`. An omitted `addWidget.after` appends; an empty `after` inserts/moves to the beginning. Nonempty anchors must exist at that point in the batch. Moving after oneself is rejected. Adding without a title uses the renderer's default title; an explicit empty title is kept empty.
+
+Preview renders the candidate without changing the active document or disk. Apply saves a new generation; Cancel restores the committed view. Whole-document editing cannot change the application ID, data sources or permissions in this slice. Deleting widgets discards only view configuration in the current demo; it does not delete external data. Preview currently recreates delegates, so transient text-field state is not reconciled by ID yet.
+
 ## Pipeline / invariants
 
 ```

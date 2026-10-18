@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QCoreApplication>
+#include <QQuickStyle>
 #include "WeatherService.h"
 #include "AppDocument.h"
 
@@ -9,6 +10,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
     QCoreApplication::setOrganizationName("MUTYVA");
     QCoreApplication::setApplicationName("City Pulse Demo");
+    QQuickStyle::setStyle("Fusion");
     WeatherService weather;
     AppDocument document;
     QQmlApplicationEngine engine;

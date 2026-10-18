@@ -4,7 +4,7 @@
 
 ## Slice 0 — bootstrap and live API (start immediately)
 
-- [ ] Qt 6.8+ project compiles with CMake using C++20 and QML.
+- [x] Windows MSVC / Qt 6.12 project compiles with CMake using C++20 and QML (other kits unverified).
 - [ ] City Search -> Open-Meteo geocoding -> forecast and air-quality HTTPS.
 - [ ] Show loading, error, empty state, attribution and timestamps.
 - [ ] UI usable from ~360 dp width to desktop width.
@@ -14,24 +14,26 @@
 
 ## Slice 1 — declarative UI contract
 
-- [ ] Parse `app.schema.json`; validate before instantiate.
-- [ ] Registry of known kinds with typed properties.
-- [ ] `WidgetHost` renders only known kinds (starter seed).
-- [ ] Separate data service from widgets; typed read-only bindings.
-- [ ] Support `addWidget`, `removeWidget`, `updateProperty`, `moveWidget` with reference checks.
-- [ ] Unit tests for malformed docs, unknown kinds, duplicate widget IDs, forbidden actions.
+- [x] Validate against bundled `app.schema.json` before rendering, saving and restoring (checker supports this schema's vocabulary).
+- [x] Catalog of five known kinds with schema-typed properties and fixed source/binding descriptors.
+- [x] `WidgetHost` renders known kinds; titles are read from the declaration.
+- [x] Separate weather service with typed read-only Q_PROPERTY data; fixed binding contract per kind, no expression evaluation.
+- [x] Support `addWidget`, `removeWidget`, `updateProperty`, `moveWidget` with reference checks and ordered batch semantics.
+- [x] Tests for malformed docs, unknown kinds, duplicate widget IDs, forbidden actions; offline QML preview/render tests.
 
-**Acceptance:** hand-edit a legal `.mutyva.json` file and see a correctly rendered app without recompiling.
+**Acceptance path:** edit a declaration in the built-in JSON editor (or paste a hand-edited `.mutyva.json`), validate/preview and Apply without recompiling. File-picker import/export remains future work.
 
 ## Slice 2 — immutable mutation history
 
 - [ ] Persist application generations and HEAD locally using durable atomic writes.
 - [ ] Add description, timestamp, parent generation and SHA-256 of canonical JSON.
-- [ ] Preview a candidate mutation and choose Apply/Cancel.
+- [x] Preview a candidate mutation and choose Apply/Cancel; cancellation does not write to disk.
 - [ ] History UI: list generations and restore any version as a **new** generation.
 - [ ] On crash/disk-full, previous generation remains intact.
 
 **Acceptance:** apply >3 changes, restart; restore any version; never lose the baseline. Starter has a limited file-based precedent.
+
+Current persistence adds a writer lock, stale-HEAD rejection and avoids reusing orphan snapshot filenames. Corrupt saved documents are rejected without overwriting history. Full recovery, metadata/hash/parent tracking and the selectable history browser remain unfinished.
 
 ## Slice 3 — Sign in with ChatGPT (critical feasibility gate)
 

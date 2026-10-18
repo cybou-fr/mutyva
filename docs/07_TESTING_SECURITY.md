@@ -34,6 +34,10 @@
 
 ## Automated suites to add
 
+Implemented in `tests/RuntimeTest.cpp`: bundled-schema/catalog checks, document rejection cases, ordered four-operation batches, all-or-nothing rejection, permission gate, preview/cancel/apply, saved restart, writer lock/stale HEAD, orphan snapshot preservation, corrupt snapshot rejection, and offline QML title/preview rendering at desktop and narrow widths. Run through CTest; no live API or OAuth is used by these tests.
+
+Remaining suites and expansion:
+
 - `AppDocumentTest` — parse, canonical serialize, stable IDs, unknown/duplicate references.
 - `MutationEngineTest` — allowable ops, props, permissions, rollback atomicity.
 - `SseDecoderTest` — fragmented chunks, multi-line event payload, completion and error events.

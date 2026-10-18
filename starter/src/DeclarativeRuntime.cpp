@@ -4,7 +4,6 @@
 #include <QJsonDocument>
 #include <QRegularExpression>
 #include <QSet>
-#include <cmath>
 
 namespace {
 QJsonObject schema(const QString &name) {

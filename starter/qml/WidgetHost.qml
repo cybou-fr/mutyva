@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Loader {
     id: host
     property var definition: ({})
+    objectName: "widget-" + (definition.id || "unknown")
     Layout.fillWidth: true
     Layout.preferredHeight: item ? item.implicitHeight : 1
     sourceComponent: {
@@ -17,14 +18,19 @@ Loader {
         default: return unknownCard;
         }
     }
-    onLoaded: { if (item) item.definition = host.definition }
     Component {
         id: citySearch
         Rectangle {
-            property var definition: ({})
-            implicitHeight: 96; radius: 16; color: "#1c2840"
-            RowLayout {
+            implicitHeight: searchLayout.implicitHeight + 32; radius: 16; color: "#1c2840"
+            ColumnLayout {
+                id: searchLayout
                 anchors.fill: parent; anchors.margins: 16; spacing: 10
+                Text {
+                    text: host.definition.title === undefined ? "Поиск города" : host.definition.title
+                    textFormat: Text.PlainText; color: "white"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
+                RowLayout {
+                    Layout.fillWidth: true
                 TextField {
                     id: cityInput
                     Layout.fillWidth: true
@@ -32,22 +38,27 @@ Loader {
                     onAccepted: weatherService.lookup(text)
                 }
                 Button { text: "Найти"; onClicked: weatherService.lookup(cityInput.text) }
+                }
             }
         }
     }
     Component {
         id: weatherCard
         Rectangle {
-            property var definition: ({})
-            implicitHeight: 165; radius: 16; color: "#1c2840"
+            implicitHeight: weatherLayout.implicitHeight + 36; radius: 16; color: "#1c2840"
             ColumnLayout {
+                id: weatherLayout
                 anchors.fill: parent; anchors.margins: 18; spacing: 8
-                Text { text: weatherService.city; color: "#a3b0c8"; font.pixelSize: 17 }
+                Text {
+                    text: host.definition.title === undefined ? "Текущая погода" : host.definition.title
+                    textFormat: Text.PlainText; color: "white"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
+                Text { text: weatherService.city; color: "#a3b0c8"; font.pixelSize: 17; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: weatherService.temperature.toFixed(1) + " °C"; color: "white"; font.bold: true; font.pixelSize: 39 }
+                    Text { text: weatherService.temperature.toFixed(1) + " °C"; color: "white"; font.bold: true; font.pixelSize: host.width < 400 ? 30 : 39 }
                     Item { Layout.fillWidth: true }
-                    Text { text: "Ветер " + weatherService.wind.toFixed(1) + " км/ч"; color: "#a3b0c8"; font.pixelSize: 14 }
+                    Text { text: "Ветер " + weatherService.wind.toFixed(1) + " км/ч"; color: "#a3b0c8"; font.pixelSize: 14; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 }
             }
         }
@@ -55,13 +66,16 @@ Loader {
     Component {
         id: forecastList
         Rectangle {
-            property var definition: ({})
             implicitHeight: daysCol.implicitHeight + 35; radius: 16; color: "#1c2840"
             ColumnLayout {
                 id: daysCol
                 anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
                 anchors.margins: 17; spacing: 9
-                Text { text: "Прогноз на 7 дней"; color: "white"; font.bold: true; font.pixelSize: 17 }
+                Text {
+                    text: host.definition.title === undefined ? "Прогноз на 7 дней" : host.definition.title
+                    textFormat: Text.PlainText; color: "white"; font.bold: true; font.pixelSize: 17
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
                 Repeater {
                     model: weatherService.daily
                     delegate: RowLayout {
@@ -79,13 +93,17 @@ Loader {
     Component {
         id: airCard
         Rectangle {
-            property var definition: ({})
-            implicitHeight: 98; radius: 16; color: "#1c2840"
+            implicitHeight: airLayout.implicitHeight + 36; radius: 16; color: "#1c2840"
             RowLayout {
+                id: airLayout
                 anchors.fill: parent; anchors.margins: 18
                 ColumnLayout {
-                    Text { text: "Качество воздуха"; color: "#a3b0c8" }
-                    Text { text: "European Air Quality Index"; color: "white"; font.pixelSize: 12 }
+                    Layout.fillWidth: true
+                    Text {
+                        text: host.definition.title === undefined ? "Качество воздуха" : host.definition.title
+                        textFormat: Text.PlainText; color: "#a3b0c8"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                    }
+                    Text { text: "European Air Quality Index"; color: "white"; font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                 }
                 Item { Layout.fillWidth: true }
                 Text { text: weatherService.aqi >= 0 ? weatherService.aqi.toString() : "—"; color: "#7ed1ac"; font.bold: true; font.pixelSize: 31 }
@@ -95,11 +113,15 @@ Loader {
     Component {
         id: humidityCard
         Rectangle {
-            property var definition: ({})
-            implicitHeight: 94; radius: 16; color: "#143c47"
+            implicitHeight: humidityLayout.implicitHeight + 36; radius: 16; color: "#143c47"
             RowLayout {
+                id: humidityLayout
                 anchors.fill: parent; anchors.margins: 18
-                Text { text: "Добавлено мутацией · Влажность"; color: "white"; font.pixelSize: 15 }
+                Text {
+                    text: host.definition.title === undefined ? "Влажность воздуха" : host.definition.title
+                    textFormat: Text.PlainText; color: "white"; font.pixelSize: 15
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
                 Item { Layout.fillWidth: true }
                 Text { text: weatherService.humidity + " %"; color: "#9befdc"; font.bold: true; font.pixelSize: 29 }
             }
@@ -108,7 +130,6 @@ Loader {
     Component {
         id: unknownCard
         Rectangle {
-            property var definition: ({})
             implicitHeight: 64; radius: 12; color: "#5b2525"
             Text { anchors.centerIn: parent; text: "Неизвестный тип компонента"; color: "white" }
         }

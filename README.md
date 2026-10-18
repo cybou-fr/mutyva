@@ -1,6 +1,6 @@
 # MUTYVA — MVP Delivery Pack
 
-**Status:** implementation specification + Qt demo starter, 2026-10-18. **Language:** Russian.  
+**Status:** declarative Qt editor with validated local mutations and preview, 2026-10-18. **Language:** Russian.
 **Product:** One AI-driven Qt application that can become many applications; after a mutation is saved, it executes independently of AI.
 
 ## Product in one sentence
@@ -26,7 +26,8 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/10_AGENT_HANDOFF.md` | Copyable implementation instructions for coding agents |
 | `specs/` | JSON schemas (application and mutation) |
 | `examples/` | Declarative City Pulse and an example mutation |
-| `starter/` + root `CMakeLists.txt` | Small Qt 6 QML/C++ starter with live public APIs and local versioned UI |
+| `starter/` + root `CMakeLists.txt` | Qt 6 editor with live APIs, schema-checked documents, four mutation operations and preview |
+| `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Quickest path to a visible result
@@ -34,11 +35,18 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 1. Install **Qt 6.8+** with Qt Quick, Qt Quick Controls and the desktop kit, CMake and C++20 toolchain.
 2. Open the root `CMakeLists.txt` in Qt Creator, or use `qt-cmake -S . -B build` then `cmake --build build --config Release`.
 3. Run `mutyva-demo` with internet access. It searches **Paris** and displays weather, a seven-day forecast and air quality via Open-Meteo.
-4. Press **+ Виджет влажности**: the JSON-driven widget list mutates and a new immutable local generation is saved.
-5. Restart: the interface remains changed, without an AI request. Press **Откат поколения** or **Сбросить интерфейс**.
-6. Implement `docs/03_CHATGPT_AUTH.md` and connect the real AI mutation request to the schema validation and commit path.
+4. Press **+ Виджет влажности**: review the candidate interface, then press **Применить** to save a new generation or **Отмена** to discard it.
+5. Use **Изменить интерфейс** to add/remove/reorder components or edit their titles. **Редактор JSON** accepts a full declaration or a mutation; validation failures preserve the running document and HEAD.
+6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
+7. Implement `docs/03_CHATGPT_AUTH.md` and connect the real AI mutation request to the existing validation/preview/commit path.
 
-**Important:** the starter is a *bootstrap demonstration*, not the finished MVP: its mutation is deterministic, and it deliberately does **not** include actual ChatGPT OAuth, AI calls, SQL, production-quality security validation or iOS verification. All are described as explicit work items rather than being misrepresented as already built.
+**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Data bindings are fixed per registered component, not user expressions. The schema checker implements the vocabulary used by the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; stable-ID preservation of transient control state is future work.
+
+## Build and tests
+
+Enable tests with `-DBUILD_TESTING=ON` (requires the Qt Test module), build, then run `ctest --test-dir build -C Release --output-on-failure`. Tests use temporary stores and offline QML rendering; they do not modify the user's saved generations or contact weather APIs. Use `-DBUILD_TESTING=OFF` for an application-only build.
+
+Windows MSVC example: `cmake -S . -B build-msvc -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64`, then `cmake --build build-msvc --config Release`. Run `windeployqt --release --qmldir starter/qml build-msvc/Release/mutyva-demo.exe` from the matching Qt kit before launching the EXE outside Qt Creator.
 
 ## MVP demo sequence
 
