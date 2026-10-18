@@ -39,28 +39,29 @@ Current persistence adds a writer lock, stale-HEAD rejection and avoids reusing 
 
 ## Slice 3 — Sign in with ChatGPT (critical feasibility gate)
 
-Preparation for AI integration is now implemented locally: shared component catalog with property/binding/action metadata, trusted designer instructions, bounded inspectable context and a checked proposal/clarification/unsupported response envelope. See `11_AI_DESIGN_CONTRACT.md`. Windows ChatSession and AiChat now implement the first browser sign-in and Responses path; real-account verification, persistent sessions and refresh remain pending (doc15).
+Preparation for AI integration is now implemented locally: shared component catalog with property/binding/action metadata, trusted designer instructions, bounded inspectable context and a checked proposal/clarification/unsupported response envelope. See `11_AI_DESIGN_CONTRACT.md`. Windows ChatSession and AiChat now implement the first browser sign-in and Responses path; a real-account Windows suite passed (doc16); persistent sessions and refresh remain pending.
 
 General palette v2 is implemented with parent containers, append-only v1 migration, an interactive Notes composition and separate persistent SQLite input/list data with transactional actions and stale-writer protection. See `12_GENERAL_PALETTE.md` and `13_LOCAL_DATA.md`. Generic business records and DataTable remain future work.
 
-- [x] Implement first Windows dynamic OAuth registration with host ID, PKCE, state and nonce (live verification pending).
-- [x] Implement Windows RS256/CNG verification of ID token and granted plan scope, with offline negative tests (live verification pending).
+- [x] Implement first Windows dynamic OAuth registration with host ID, PKCE, state and nonce (real Windows live suite passed; doc16).
+- [x] Implement Windows RS256/CNG verification of ID token and granted plan scope, with offline negative tests (real Windows live suite passed; doc16).
 - [ ] Secure OS credential storage; refresh and disconnect.
-- [x] Implement `GET /v1/models` under OAuth account and automatic visible-model selection (live verification pending).
-- [x] Implement `POST /v1/responses` with `store:false` and `stream:true` (live verification pending).
+- [x] Implement `GET /v1/models` under OAuth account and automatic visible-model selection (real Windows live suite passed; doc16).
+- [x] Implement `POST /v1/responses` with `store:false` and `stream:true` (real Windows live suite passed; doc16).
 - [x] Implement bounded SSE completion/error handling and manual retry; offline tests pass.
-- [ ] Verify browser sign-in, model access, real streamed reply and revocation with a consenting eligible account.
+- [x] Verify browser sign-in, model access and real streamed reply with a consenting account (doc16).
+- [ ] Verify revocation and renewable persistent sessions.
 
 **Acceptance:** a consenting eligible Plus account requests “say hello” without manually entering an API key; account tokens never enter logs. Full platform tests later. **Do not silently substitute the paid API or reuse ChatGPT browser cookies.**
 
 ## Slice 4 — first real AI mutation (MVP wow moment)
 
-- [x] Wire automatic context construction and the chat send path into AiChat; live request verification pending.
-- [ ] Ask for `addWidget humidity-card` and parse typed mutation JSON.
+- [x] Wire automatic context construction and the chat send path into AiChat; real Windows live request passed (doc16).
+- [x] Ask for `addWidget humidity-card` and parse typed mutation JSON (real live suite).
 - [x] Validate schema, component props, references and allowlisted permissions.
 - [x] Wire accepted AI candidate to preview/confirmation and immutable commit; offline proposal-boundary tests pass.
 - [ ] New view renders live humidity from Open-Meteo without AI.
-- [ ] Restart disconnected; view persists. Failed/partial stream cannot mutate current state.
+- [x] Recreate AppDocument after a real AI mutation without another inference request; saved definition persists. Failed/partial stream protection has offline tests.
 
 **Acceptance:** a user without coding skill makes a persistent GUI feature by describing it in Russian.
 

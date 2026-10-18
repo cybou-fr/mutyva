@@ -43,7 +43,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 
 ## Main interface
 
-The main screen exposes **Чат с AI** and the running application. Open the chat, choose **Continue with ChatGPT**, finish browser sign-in and send a request. The host prepares context internally and shows a preview for confirmation. The first Windows OAuth/Responses integration is implemented; live account verification is pending. Tokens and chat are memory-only for now; restart requires sign-in again. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
+The main screen exposes **Чат с AI** and the running application. Open the chat, choose **Continue with ChatGPT**, finish browser sign-in and send a request. The host prepares context internally and shows a preview for confirmation. The first Windows OAuth/Responses integration is implemented; a real-account Windows live suite passed on 2026-10-19 (reply plus isolated AI mutation/apply/restart). Tokens and chat are memory-only for now; restart requires sign-in again. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
 
 ## Quickest path to a visible result
 
@@ -55,9 +55,11 @@ The main screen exposes **Чат с AI** and the running application. Open the c
 6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
 7. Return to normal mode with **Ctrl+Shift+D**, open **Чат с AI** and sign in. The first Windows integration connects messages to validation/preview/commit; verify with your eligible account. See `docs/15_AI_CONNECTION.md`.
 
-**Important:** this is not the finished MVP. The chat and developer editor share the checked mutation path. Real-account OAuth/inference verification, protected persistent sessions, refresh, multi-account selection, generic SQL connectors, production auth/security review and iOS verification remain work items. Weather bindings are fixed; general controls use typed actions and persist input/list data separately in SQLite. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic values are kept by stable ID/kind, while weather search view state is not reconciled yet.
+**Important:** this is not the finished MVP. The chat and developer editor share the checked mutation path. Protected persistent sessions, refresh, multi-account selection, generic SQL connectors, production auth/security review and iOS verification remain work items. Weather bindings are fixed; general controls use typed actions and persist input/list data separately in SQLite. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic values are kept by stable ID/kind, while weather search view state is not reconciled yet.
 
 ## Build and tests
+
+**Real ChatGPT test:** run `powershell -ExecutionPolicy Bypass -File tools/run_live_ai_test.ps1`, complete browser sign-in once, and let the test send requests and verify replies, preview, an isolated commit and restart automatically. Results: `build-msvc/live-ai-report.json`. See [docs/16_LIVE_AI_TESTS.md](docs/16_LIVE_AI_TESTS.md). This is opt-in and uses account plan limits; normal CTest remains offline.
 
 **Branding:** supplied artwork is integrated into README, application resources, first-run welcome/About and desktop/Android packaging. See [branding/README.md](branding/README.md) for exports, reproduction and platform verification notes. Runtime display branding preserves the previous data-storage namespace.
 

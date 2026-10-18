@@ -1,6 +1,6 @@
 # Sign in with ChatGPT — Integration Blueprint (reviewed 2026-10-19)
 
-**Current status:** a first Windows browser sign-in and Responses integration is implemented. See [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for exact behavior: memory-only tokens, re-sign-in on expiry, one saved registration, RS256/CNG verification; no persistent sessions or automatic refresh yet. Real account end-to-end verification remains pending. The complete target design below includes work not yet implemented. Re-check linked pages before coding. ChatGPT plan usage is an optional permission for eligible open-source, locally hosted clients; it is not a generic unrestricted free API. Paid/remotely hosted distribution requires contacting OpenAI.
+**Current status:** a first Windows browser sign-in and Responses integration is implemented. See [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for exact behavior: memory-only tokens, re-sign-in on expiry, one saved registration, RS256/CNG verification; no persistent sessions or automatic refresh yet. A real-account Windows live suite passed on 2026-10-19: reply, mutation preview, isolated apply and restart. See doc16 and its saved evidence. Revocation/refresh and other platforms remain unverified. The complete target design below includes work not yet implemented. Re-check linked pages before coding. ChatGPT plan usage is an optional permission for eligible open-source, locally hosted clients; it is not a generic unrestricted free API. Paid/remotely hosted distribution requires contacting OpenAI.
 
 ## Official sources
 

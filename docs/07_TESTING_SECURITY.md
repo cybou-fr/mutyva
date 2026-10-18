@@ -61,6 +61,10 @@ Qt licensing must be reviewed for chosen Qt modules and distribution model. Open
 
 ## First Windows AI integration
 
-See [15_AI_CONNECTION.md](15_AI_CONNECTION.md). Offline tests cover CNG RSA signature verification and JWT claim failures, PKCE/callback validation, chunked SSE completion/errors/limits and chat proposal-to-preview behavior. Live browser auth, token exchange, model access, inference and revocation are still unverified. Tokens and chat are memory-only; persistence/refresh/multiple accounts require further implementation.
+See [15_AI_CONNECTION.md](15_AI_CONNECTION.md). Offline tests cover CNG RSA signature verification and JWT claim failures, PKCE/callback validation, chunked SSE completion/errors/limits and chat proposal-to-preview behavior. Live browser auth, token exchange, model access, reply and isolated mutation/apply/restart passed on one Windows account on 2026-10-19 (doc16). Revocation and other platforms remain unverified. Tokens and chat are memory-only; persistence/refresh/multiple accounts require further implementation.
 
 Model discovery also has an injectable offline network test covering a 600 KiB catalog through Responses and preview, 401/429/network failures, malformed/empty/unexpected catalogs, the 4 MiB bound and cancellation. Diagnostic output contains only fixed stage/reason enums and numeric metadata; never server bodies or credentials.
+
+## Human-authenticated live suite
+
+See [16_LIVE_AI_TESTS.md](16_LIVE_AI_TESTS.md). The standalone live-ai-tests executable opens real browser sign-in, then automatically exercises a nonmutating reply and an AI mutation through temporary preview/apply/restart. Its atomic JSON report distinguishes waiting/running from passed/failed/cancelled. One sign-in covers the suite; no screenshots or manual prompts are needed. The user's live generations/data are not used. Offline harness tests remain separate from evidence of a real live pass.

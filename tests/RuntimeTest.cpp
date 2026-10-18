@@ -17,6 +17,7 @@
 #include "BrandIdentity.h"
 #include "ChatSession.h"
 #include "AiChat.h"
+#include "LiveAiCheck.h"
 #include "SiwcProtocol.h"
 #include "AiResponseStream.h"
 #include <QImage>
@@ -162,6 +163,56 @@ bool dataSql(const QString &path, const QString &sql) {
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void liveAiHarnessRunsAutomatically() {
+        QTemporaryDir folder;
+        ChatSession session;
+        session.m_access = "fixture-private-token";
+        session.m_expires = QDateTime::currentSecsSinceEpoch() + 3600;
+        FixtureNetwork network;
+        const auto catalog = QByteArray("{\"models\":[{\"slug\":\"test-model\",\"visibility\":\"list\"}]}");
+        const auto question = json(QJsonObject{{"status", "clarification"}, {"message", "Какой виджет добавить?"}});
+        const auto mutation = json(read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json")));
+        network.fixtures = {HttpFixture{200, catalog}, HttpFixture{200, sse(completed(question)), QNetworkReply::NoError, "application/json"},
+            HttpFixture{200, catalog}, HttpFixture{200, sse(completed(mutation)), QNetworkReply::NoError, "application/json"}};
+        const auto path = folder.filePath("report.json");
+        LiveAiCheck check(&session, path, nullptr, &network);
+        QSignalSpy done(&check, &LiveAiCheck::completed);
+        check.start(); check.start();
+        QTRY_COMPARE(done.count(), 1);
+        QCOMPARE(done.first().first().toInt(), 0);
+        QVERIFY(check.finished());
+        const auto report = read(path);
+        QCOMPARE(report.value("status").toString(), QString("passed"));
+        QCOMPARE(report.value("cases").toArray().size(), 2);
+        QCOMPARE(network.requests.size(), 4);
+        QCOMPARE(report.value("cases").toArray().last().toObject().value("reason").toString(), QString("preview_apply_restart_verified"));
+        QVERIFY(!bytes(path).contains("fixture-private-token"));
+        check.cancel(); QCOMPARE(done.count(), 1);
+    }
+    void liveAiHarnessFailureAndCancellation() {
+        QTemporaryDir folder;
+        ChatSession session;
+        session.m_access = "fixture-private-token";
+        session.m_expires = QDateTime::currentSecsSinceEpoch() + 3600;
+        FixtureNetwork network;
+        network.fixtures = {HttpFixture{401, "{}", QNetworkReply::AuthenticationRequiredError}};
+        LiveAiCheck check(&session, folder.filePath("failed.json"), nullptr, &network);
+        QSignalSpy done(&check, &LiveAiCheck::completed);
+        check.start(); QTRY_COMPARE(done.count(), 1);
+        QCOMPARE(done.first().first().toInt(), 1);
+        const auto report = read(folder.filePath("failed.json"));
+        QCOMPARE(report.value("status").toString(), QString("failed"));
+        QCOMPARE(report.value("cases").toArray().size(), 1);
+        QVERIFY(report.value("cases").toArray().first().toObject().value("diagnostics").toString().contains("http=401"));
+        ChatSession disconnected;
+        LiveAiCheck cancelled(&disconnected, folder.filePath("cancelled.json"), nullptr, &network);
+        QSignalSpy cancelDone(&cancelled, &LiveAiCheck::completed);
+        cancelled.start(); QVERIFY(!cancelled.finished());
+        cancelled.cancel(); QCOMPARE(cancelDone.count(), 1);
+        QCOMPARE(cancelDone.first().first().toInt(), 2);
+        QCOMPARE(read(folder.filePath("cancelled.json")).value("status").toString(), QString("cancelled"));
+        QCOMPARE(network.requests.size(), 1);
+    }
     void aiCatalogTransport() {
         QTemporaryDir folder;
         AppDocument document(nullptr, folder.path());
