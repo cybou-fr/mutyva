@@ -80,7 +80,9 @@ void AiChat::request(const QString &model) {
     for (const auto &entry : m_messages) {
         const auto message = entry.toMap();
         if (message.value("unfinished").toBool()) continue;
-        input.append(QJsonObject{{"role", message.value("role").toString()}, {"content", message.value("text").toString()}});
+        QJsonObject inputMessage{{"role", message.value("role").toString()}, {"content", message.value("text").toString()}};
+        if (message.value("role") == "assistant") inputMessage["phase"] = "final_answer";
+        input.append(inputMessage);
     }
     input.append(QJsonObject{{"role", "user"}, {"content", QString::fromUtf8(QJsonDocument(m_packet.value("context").toObject()).toJson(QJsonDocument::Compact))}});
     const QJsonObject body{{"model", model}, {"store", false}, {"stream", true},
@@ -139,6 +141,7 @@ void AiChat::serviceFailure(const QString &stage, QNetworkReply *reply, qint64 b
     m_diagnostics = QString("AI stage=%1 http=%2 network=%3 bytes=%4 reason=%5")
         .arg(stage).arg(http).arg(network).arg(bytes).arg(reason);
     if (stage == "responses" && !m_stream.errorParameter().isEmpty()) m_diagnostics += " param=" + m_stream.errorParameter();
+    if (stage == "responses" && !m_stream.outputShape().isEmpty()) m_diagnostics += " " + m_stream.outputShape();
     qInfo().noquote() << m_diagnostics;
     QString message;
     if (stage == "responses" && !m_stream.error().isEmpty()) message = m_stream.error();

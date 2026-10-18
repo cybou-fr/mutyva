@@ -55,3 +55,15 @@ AppDocument проверяет envelope, схему мутации, семант
 Транспортные тесты воспроизводят HTTP 200 → response.failed → abort → Qt network=5 и проверяют, что пользователь видит лимит, а не сетевую ошибку; отдельный тест проверяет повреждённый SSE JSON. Реальная причина исходного завершения потока не сохранилась в старой версии; повтор в обновлённой версии нужен для проверки оставшихся серверных ограничений.
 
 Сопоставление серверных ошибок основано на [официальных Errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery).
+
+## Сборка финального ответа
+
+Следующий журнал: HTTP 200, 32516 байтов, reason=invalid_output_text. В старом обработчике это объединяло отсутствие текста и наличие нескольких assistant messages. Поскольку весь поток был меньше лимита текста, превышение лимита исключено; точная форма сообщения в старой версии не сохранялась.
+
+Устранено требование ровно одного assistant message. Выбирается phase=final_answer; промежуточные phase=commentary не попадают в JSON мутации. Если phase отсутствует, используется последнее assistant message. Несколько явных финальных ответов отклоняются. В историю отправляются только завершённые ответы с phase=final_answer.
+
+Финализированные response.output_item.done и response.output_text.done собираются по output_index/content_index. Если terminal response не дублирует текст, берётся собранный финализированный текст. Он доступен для валидации только после response.completed и успешного окончания потока. Одних дельт или done-событий без terminal completion недостаточно. Совпадающие terminal/stream представления не дублируются; конфликтующие тексты, неизвестные виды, отказ и незавершённый поток отклоняются.
+
+Тесты проверяют commentary + final, сообщения без phase, компактный terminal output, текстовые done-события, обрыв, ошибку после done и несовпадение представлений. Транспортный тест доводит ответ с двумя assistant messages до предпросмотра. Диагностика дополняется только счётчиками структуры, без текста ответа.
+
+Основание: [Streaming events](https://developers.openai.com/api/reference/resources/responses/streaming-events) и [assistant message phase](https://developers.openai.com/api/reference/resources/responses/methods/create).

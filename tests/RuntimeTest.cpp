@@ -174,7 +174,13 @@ private slots:
             {"padding", QString(600 * 1024, 'x')}}).toJson(QJsonDocument::Compact);
         QVERIFY(model.size() > 512 * 1024);
         const auto fixture = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json"));
-        network.fixtures = {HttpFixture{200, model}, HttpFixture{200, sse(completed(json(fixture))), QNetworkReply::NoError, "text/event-stream"}};
+        auto realOutput = completed(json(fixture));
+        auto realResponse = realOutput.value("response").toObject();
+        auto finalItem = realResponse.value("output").toArray().first().toObject(); finalItem["phase"] = "final_answer";
+        auto progressItem = finalItem; progressItem["phase"] = "commentary";
+        progressItem["content"] = QJsonArray{QJsonObject{{"type", "output_text"}, {"text", "Готовлю изменение."}}};
+        realResponse["output"] = QJsonArray{progressItem, finalItem}; realOutput["response"] = realResponse;
+        network.fixtures = {HttpFixture{200, model}, HttpFixture{200, sse(realOutput), QNetworkReply::NoError, "text/event-stream"}};
         QVERIFY(chat.send("Добавь влажность"));
         QTRY_VERIFY(!chat.busy());
         QVERIFY(document.hasPreview()); QCOMPARE(network.requests.size(), 2);
@@ -256,6 +262,42 @@ private slots:
 #else
         QSKIP("Windows CNG verifier; other platforms are disabled");
 #endif
+    }
+    void aiStreamFinalAssembly() {
+        const QString payload = "{\"status\":\"clarification\",\"message\":\"Какой город?\"}";
+        auto final = completed(payload).value("response").toObject().value("output").toArray().first().toObject();
+        final["phase"] = "final_answer";
+        auto commentary = final; commentary["phase"] = "commentary";
+        commentary["content"] = QJsonArray{QJsonObject{{"type", "output_text"}, {"text", "Проверяю возможности приложения."}}};
+        const auto terminal = [](const QJsonArray &items) { return QJsonObject{{"type", "response.completed"},
+            {"response", QJsonObject{{"status", "completed"}, {"output", items}}}}; };
+        AiResponseStream phased;
+        QVERIFY(phased.feed(sse(terminal(QJsonArray{commentary, final}))));
+        QVERIFY(phased.finish()); QCOMPARE(phased.text(), payload);
+        auto plainCommentary = commentary; plainCommentary.remove("phase");
+        auto plainFinal = final; plainFinal.remove("phase");
+        AiResponseStream legacy;
+        QVERIFY(legacy.feed(sse(terminal(QJsonArray{plainCommentary, plainFinal})))); QVERIFY(legacy.finish()); QCOMPARE(legacy.text(), payload);
+        const auto part = [](int index, const QJsonObject &item) { return QJsonObject{{"type", "response.output_item.done"}, {"output_index", index}, {"item", item}}; };
+        const auto items = sse(part(0, commentary)) + sse(part(1, final));
+        AiResponseStream compact;
+        QVERIFY(compact.feed(items)); QVERIFY(compact.text().isEmpty());
+        QVERIFY(compact.feed(sse(terminal({})))); QVERIFY(compact.finish()); QCOMPARE(compact.text(), payload);
+        AiResponseStream interrupted;
+        QVERIFY(interrupted.feed(items)); QVERIFY(!interrupted.finish());
+        AiResponseStream textDone;
+        auto added = final; added["status"] = "in_progress"; added["content"] = QJsonArray();
+        QVERIFY(textDone.feed(sse(QJsonObject{{"type", "response.output_item.added"}, {"output_index", 0}, {"item", added}})));
+        QVERIFY(textDone.feed(sse(QJsonObject{{"type", "response.output_text.done"}, {"output_index", 0}, {"content_index", 0}, {"text", payload}})));
+        QVERIFY(textDone.text().isEmpty());
+        QVERIFY(textDone.feed(sse(terminal({})))); QVERIFY(textDone.finish()); QCOMPARE(textDone.text(), payload);
+        AiResponseStream conflict;
+        QVERIFY(conflict.feed(items));
+        QVERIFY(!conflict.feed(sse(completed("different")))); QCOMPARE(conflict.reason(), QString("conflicting_final_output"));
+        AiResponseStream failed;
+        QVERIFY(failed.feed(items)); QVERIFY(!failed.feed(sse(QJsonObject{{"type", "response.failed"}}))); QVERIFY(!failed.finish());
+        AiResponseStream onlyCommentary;
+        QVERIFY(!onlyCommentary.feed(sse(terminal(QJsonArray{commentary})))); QCOMPARE(onlyCommentary.reason(), QString("missing_final_text"));
     }
     void aiStreamCompletion() {
         const auto payload = QString::fromUtf8("{\"status\":\"clarification\",\"message\":\"Какие задачи?\"}");
