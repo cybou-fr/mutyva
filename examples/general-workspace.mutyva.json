@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "id": "official.city-pulse",
+  "name": "City Pulse",
+  "description": "Некоммерческая демонстрация публичных API Open-Meteo",
+  "widgets": [
+    {
+      "id": "notesCard",
+      "kind": "card",
+      "title": "Мои заметки · общая палитра"
+    },
+    {
+      "id": "notesStack",
+      "kind": "stack",
+      "parent": "notesCard"
+    },
+    {
+      "id": "notesText",
+      "kind": "text",
+      "parent": "notesStack",
+      "text": "Введите заметку и добавьте её в список. Кнопки работают без AI. Данные этого примера живут только в текущем сеансе."
+    },
+    {
+      "id": "noteInput",
+      "kind": "input",
+      "parent": "notesStack",
+      "title": "Новая заметка",
+      "placeholder": "Что нужно запомнить?",
+      "value": ""
+    },
+    {
+      "id": "notesActions",
+      "kind": "row",
+      "parent": "notesStack"
+    },
+    {
+      "id": "addNote",
+      "kind": "button",
+      "parent": "notesActions",
+      "title": "Добавить",
+      "action": {
+        "kind": "append-item",
+        "input": "noteInput",
+        "target": "notesList"
+      }
+    },
+    {
+      "id": "clearNotes",
+      "kind": "button",
+      "parent": "notesActions",
+      "title": "Очистить список",
+      "action": {
+        "kind": "clear-list",
+        "target": "notesList"
+      }
+    },
+    {
+      "id": "notesList",
+      "kind": "list",
+      "parent": "notesStack",
+      "title": "Заметки",
+      "items": [
+        "Проверить общую палитру компонентов"
+      ]
+    },
+    {
+      "id": "citySearch",
+      "kind": "city-search",
+      "title": "Поиск города"
+    },
+    {
+      "id": "currentWeather",
+      "kind": "weather-card",
+      "title": "Текущая погода"
+    },
+    {
+      "id": "forecast",
+      "kind": "forecast-list",
+      "title": "Прогноз"
+    },
+    {
+      "id": "air",
+      "kind": "air-card",
+      "title": "Качество воздуха"
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "geocoding",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "weather",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "airQuality",
+      "kind": "rest",
+      "provider": "open-meteo"
+    }
+  ],
+  "permissions": [
+    "network:*.open-meteo.com"
+  ]
+}

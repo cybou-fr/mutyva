@@ -61,14 +61,15 @@ ApplicationWindow {
                 Layout.preferredHeight: childrenRect.height
                 spacing: 8
                 Button { text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
+                Button { text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
                 Button { text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
                 Button { text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
                 Button { text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }
             }
             DesignerPanel { visible: root.editorOpen; Layout.fillWidth: true }
             Text {
-                text: appDocument.lastError.length ? appDocument.lastError : weatherService.status
-                color: appDocument.lastError.length ? "#ffaeae" : root.muted
+                text: appDocument.lastError.length ? appDocument.lastError : interactionState.lastError.length ? interactionState.lastError : weatherService.status
+                color: appDocument.lastError.length || interactionState.lastError.length ? "#ffaeae" : root.muted
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
             ColumnLayout {
@@ -91,7 +92,7 @@ ApplicationWindow {
             }
             Repeater {
                 objectName: "widgetRepeater"
-                model: appDocument.hasPreview ? appDocument.previewWidgets : appDocument.widgets
+                model: (appDocument.hasPreview ? appDocument.previewWidgets : appDocument.widgets).filter(function(w) { return !w.parent })
                 delegate: WidgetHost {
                     required property var modelData
                     definition: modelData

@@ -8,6 +8,7 @@ qt_add_library(mutyva-core STATIC
     starter/src/DeclarativeRuntime.cpp starter/src/DeclarativeRuntime.h
     starter/src/AppDocument.cpp starter/src/AppDocument.h
     starter/src/DesignerContext.cpp starter/src/DesignerContext.h
+    starter/src/InteractionState.cpp starter/src/InteractionState.h
 )
 target_include_directories(mutyva-core PUBLIC starter/src)
 target_link_libraries(mutyva-core PUBLIC Qt6::Core)
@@ -15,6 +16,7 @@ qt_add_resources(mutyva-core "runtime_data" PREFIX "/" FILES
     specs/app.schema.json specs/mutation.schema.json
     examples/city-pulse.mutyva.json examples/mutations/add-humidity-card.json
     runtime/component-catalog.json runtime/designer-rules.txt specs/designer-response.schema.json
+    specs/app-v1.schema.json specs/mutation-v1.schema.json examples/general-workspace.mutyva.json
 )
 qt_add_executable(mutyva-demo
     starter/src/main.cpp
@@ -25,10 +27,11 @@ set_source_files_properties(starter/qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS "M
 set_source_files_properties(starter/qml/WidgetHost.qml PROPERTIES QT_RESOURCE_ALIAS "WidgetHost.qml")
 set_source_files_properties(starter/qml/DesignerPanel.qml PROPERTIES QT_RESOURCE_ALIAS "DesignerPanel.qml")
 set_source_files_properties(starter/qml/DesignerContextPanel.qml PROPERTIES QT_RESOURCE_ALIAS "DesignerContextPanel.qml")
+set_source_files_properties(starter/qml/GeneralWidget.qml PROPERTIES QT_RESOURCE_ALIAS "GeneralWidget.qml")
 qt_add_qml_module(mutyva-demo
     URI Mutyva.Demo
     VERSION 1.0
-    QML_FILES starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml
+    QML_FILES starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml starter/qml/GeneralWidget.qml
 )
 target_link_libraries(mutyva-demo PRIVATE mutyva-core Qt6::Quick Qt6::QuickControls2 Qt6::Network)
 if(MSVC)

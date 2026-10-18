@@ -1,18 +1,48 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "official.city-pulse",
   "name": "City Pulse",
   "description": "Некоммерческая демонстрация публичных API Open-Meteo",
   "widgets": [
-    { "id": "citySearch", "kind": "city-search", "title": "Поиск города" },
-    { "id": "currentWeather", "kind": "weather-card", "title": "Текущая погода" },
-    { "id": "forecast", "kind": "forecast-list", "title": "Прогноз" },
-    { "id": "air", "kind": "air-card", "title": "Качество воздуха" }
+    {
+      "id": "citySearch",
+      "kind": "city-search",
+      "title": "Поиск города"
+    },
+    {
+      "id": "currentWeather",
+      "kind": "weather-card",
+      "title": "Текущая погода"
+    },
+    {
+      "id": "forecast",
+      "kind": "forecast-list",
+      "title": "Прогноз"
+    },
+    {
+      "id": "air",
+      "kind": "air-card",
+      "title": "Качество воздуха"
+    }
   ],
   "dataSources": [
-    { "id": "geocoding", "kind": "rest", "provider": "open-meteo" },
-    { "id": "weather", "kind": "rest", "provider": "open-meteo" },
-    { "id": "airQuality", "kind": "rest", "provider": "open-meteo" }
+    {
+      "id": "geocoding",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "weather",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "airQuality",
+      "kind": "rest",
+      "provider": "open-meteo"
+    }
   ],
-  "permissions": ["network:*.open-meteo.com"]
+  "permissions": [
+    "network:*.open-meteo.com"
+  ]
 }

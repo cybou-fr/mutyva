@@ -15,7 +15,7 @@
 ## Slice 1 — declarative UI contract
 
 - [x] Validate against bundled `app.schema.json` before rendering, saving and restoring (checker supports this schema's vocabulary).
-- [x] Catalog of five known kinds with schema-typed properties and fixed source/binding descriptors.
+- [x] Catalog of twelve kinds: five weather widgets and seven general components, per-kind properties, fixed weather bindings and typed session actions.
 - [x] `WidgetHost` renders known kinds; titles are read from the declaration.
 - [x] Separate weather service with typed read-only Q_PROPERTY data; fixed binding contract per kind, no expression evaluation.
 - [x] Support `addWidget`, `removeWidget`, `updateProperty`, `moveWidget` with reference checks and ordered batch semantics.
@@ -38,6 +38,8 @@ Current persistence adds a writer lock, stale-HEAD rejection and avoids reusing 
 ## Slice 3 — Sign in with ChatGPT (critical feasibility gate)
 
 Preparation for AI integration is now implemented locally: shared component catalog with property/binding/action metadata, trusted designer instructions, bounded inspectable context and a checked proposal/clarification/unsupported response envelope. See `11_AI_DESIGN_CONTRACT.md`. This does not implement auth or inference.
+
+General palette v2 is implemented with parent containers, append-only v1 migration, an interactive Notes composition and separate in-memory session data. See `12_GENERAL_PALETTE.md`. Persistent business data and DataTable remain future work.
 
 - [ ] Implement official dynamic OAuth registration with host ID, PKCE, state and nonce.
 - [ ] Verify OIDC ID token signature/issuer/audience/nonce, granted plan scope.

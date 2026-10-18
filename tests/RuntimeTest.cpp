@@ -13,6 +13,7 @@
 #include "AppDocument.h"
 #include "WeatherService.h"
 #include "DesignerContext.h"
+#include "InteractionState.h"
 
 namespace {
 QJsonObject read(const QString &path) {
@@ -22,7 +23,7 @@ QJsonObject read(const QString &path) {
 }
 QJsonObject baseline() { return read(":/examples/city-pulse.mutyva.json"); }
 QJsonObject proposal(const QJsonArray &operations) {
-    return {{"schemaVersion", 1}, {"appId", "official.city-pulse"}, {"operations", operations}};
+    return {{"schemaVersion", 2}, {"appId", "official.city-pulse"}, {"operations", operations}};
 }
 QString json(const QJsonObject &object) { return QString::fromUtf8(QJsonDocument(object).toJson()); }
 QByteArray bytes(const QString &path) {
@@ -35,15 +36,208 @@ bool hasText(QQuickItem *item, const QString &text) {
     for (auto *child : item->childItems()) if (hasText(child, text)) return true;
     return false;
 }
+QQuickItem *findItem(QQuickItem *item, const QString &name) {
+    if (item->objectName() == name) return item;
+    for (auto *child : item->childItems()) if (auto *found = findItem(child, name)) return found;
+    return nullptr;
+}
 }
 
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void legacyMigration() {
+        auto legacy = baseline(); legacy.insert("schemaVersion", 1);
+        QString error;
+        QVERIFY(DeclarativeRuntime::validateDocument(legacy, error));
+        QTemporaryDir folder;
+        QFile snapshot(folder.filePath("generation-00001.json"));
+        QVERIFY(snapshot.open(QIODevice::WriteOnly)); snapshot.write(json(legacy).toUtf8()); snapshot.close();
+        QFile head(folder.filePath("head.json"));
+        QVERIFY(head.open(QIODevice::WriteOnly)); head.write("{\"generation\":1}"); head.close();
+        const auto original = bytes(snapshot.fileName());
+        AppDocument migrated(nullptr, folder.path());
+        QCOMPARE(migrated.generation(), 2);
+        QCOMPARE(QJsonDocument::fromJson(migrated.documentJson().toUtf8()).object().value("schemaVersion").toInt(), 2);
+        QCOMPARE(bytes(snapshot.fileName()), original);
+        AppDocument reopened(nullptr, folder.path());
+        QCOMPARE(reopened.generation(), 2); // No repeated migration on restart.
+        auto oldMutation = proposal(QJsonArray{QJsonObject{{"op", "updateProperty"}, {"id", "forecast"}, {"path", "title"}, {"value", "Новый прогноз"}}});
+        oldMutation.insert("schemaVersion", 1);
+        QJsonObject candidate;
+        QVERIFY2(DeclarativeRuntime::mutate(legacy, oldMutation, candidate, error), qPrintable(error));
+        QCOMPARE(candidate.value("schemaVersion").toInt(), 2);
+        legacy.insert("widgets", QJsonArray{QJsonObject{{"id", "newText"}, {"kind", "text"}, {"text", "нельзя в v1"}}});
+        QVERIFY(!DeclarativeRuntime::validateDocument(legacy, error));
+    }
+
+    void genericContractsAndTrees() {
+        const auto demo = read(":/examples/general-workspace.mutyva.json");
+        QString error;
+        QVERIFY2(DeclarativeRuntime::validateDocument(demo, error), qPrintable(error));
+        auto invalidWidget = [&](const QString &id, const QString &property, const QJsonValue &value) {
+            auto doc = demo;
+            auto widgets = doc.value("widgets").toArray();
+            for (qsizetype i = 0; i < widgets.size(); ++i) {
+                auto w = widgets[i].toObject();
+                if (w.value("id").toString() == id) { w.insert(property, value); widgets[i] = w; }
+            }
+            doc.insert("widgets", widgets);
+            return doc;
+        };
+        const QList<QJsonObject> invalids{
+            invalidWidget("notesText", "parent", "missing"),
+            invalidWidget("notesText", "parent", "noteInput"),
+            invalidWidget("notesCard", "parent", "notesStack"),
+            invalidWidget("notesText", "value", "wrong-kind-property"),
+            invalidWidget("notesList", "items", QJsonArray{42}),
+            invalidWidget("noteInput", "value", QString(501, 'x')),
+            invalidWidget("addNote", "action", QJsonObject{{"kind", "execute"}, {"target", "notesList"}}),
+            invalidWidget("addNote", "action", QJsonObject{{"kind", "append-item"}, {"input", "missing"}, {"target", "notesList"}}),
+            invalidWidget("clearNotes", "action", QJsonObject{{"kind", "clear-list"}, {"target", "notesText"}})
+        };
+        for (const auto &doc : invalids) QVERIFY(!DeclarativeRuntime::validateDocument(doc, error));
+        QJsonArray deep;
+        for (int i = 0; i < 9; ++i) {
+            QJsonObject node{{"id", "stack" + QString::number(i)}, {"kind", "stack"}};
+            if (i > 0) node.insert("parent", "stack" + QString::number(i - 1));
+            deep.append(node);
+        }
+        auto doc = demo; doc.insert("widgets", deep);
+        QVERIFY(!DeclarativeRuntime::validateDocument(doc, error));
+        deep.removeLast(); doc.insert("widgets", deep);
+        doc.insert("dataSources", QJsonArray{}); doc.insert("permissions", QJsonArray{});
+        QVERIFY2(DeclarativeRuntime::validateDocument(doc, error), qPrintable(error));
+        QJsonObject candidate{{"untouched", true}};
+        QVERIFY(!DeclarativeRuntime::mutate(demo, proposal(QJsonArray{QJsonObject{{"op", "moveWidget"}, {"id", "notesCard"}, {"parent", "notesStack"}, {"after", ""}}}), candidate, error));
+        QCOMPARE(candidate, QJsonObject({{"untouched", true}}));
+        QVERIFY(!DeclarativeRuntime::mutate(demo, proposal(QJsonArray{QJsonObject{{"op", "moveWidget"}, {"id", "notesText"}, {"after", "air"}}}), candidate, error));
+        QVERIFY(!DeclarativeRuntime::mutate(demo, proposal(QJsonArray{QJsonObject{{"op", "removeWidget"}, {"id", "noteInput"}}}), candidate, error));
+        QVERIFY(DeclarativeRuntime::mutate(demo, proposal(QJsonArray{QJsonObject{{"op", "removeWidget"}, {"id", "notesCard"}}}), candidate, error));
+        QCOMPARE(candidate.value("widgets").toArray().size(), 4);
+        QVERIFY(DeclarativeRuntime::mutate(demo, proposal(QJsonArray{QJsonObject{{"op", "moveWidget"}, {"id", "notesText"}, {"parent", ""}, {"after", ""}}}), candidate, error));
+        QCOMPARE(candidate.value("widgets").toArray()[0].toObject().value("id").toString(), "notesText");
+    }
+
+    void genericSessionActions() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        InteractionState state(&document);
+        QVERIFY(document.previewPaletteDemo());
+        QVERIFY(!state.setValue("noteInput", "preview"));
+        QVERIFY(!state.trigger("addNote"));
+        QVERIFY(document.applyPreview());
+        const auto generation = document.generation();
+        const auto saved = document.documentJson();
+        const auto files = QDir(folder.path()).entryList(QDir::Files);
+        QVERIFY(!state.trigger("addNote")); // Empty input.
+        QVERIFY(!state.setValue("noteInput", QString(501, 'x')));
+        QVERIFY(!state.setValue("notesText", "invalid target"));
+        QVERIFY(state.setValue("noteInput", "Секретная заметка сеанса"));
+        QVERIFY(state.trigger("addNote"));
+        QCOMPARE(state.items("notesList").size(), 2);
+        QCOMPARE(state.value("noteInput"), QString());
+        QCOMPARE(document.documentJson(), saved);
+        QCOMPARE(document.generation(), generation);
+        QCOMPARE(QDir(folder.path()).entryList(QDir::Files), files);
+        QVERIFY(document.prepareDesignerContext("Измени подпись"));
+        QVERIFY(!document.designerContextJson().contains("Секретная заметка сеанса"));
+        QVERIFY(document.renameWidget("notesCard", "Мой блокнот"));
+        QVERIFY(!state.trigger("clearNotes"));
+        document.cancelPreview();
+        QCOMPARE(state.items("notesList").size(), 2);
+        QVERIFY(document.moveInto("notesText", "")); QVERIFY(document.applyPreview());
+        QCOMPARE(state.items("notesList").size(), 2); // Configuration edits preserve session state.
+        QVariantList full;
+        for (int i = 0; i < 50; ++i) full.append(QString::number(i));
+        QVERIFY(document.updateWidgetProperty("notesList", "items", full)); QVERIFY(document.applyPreview());
+        InteractionState fresh(&document);
+        QVERIFY(fresh.setValue("noteInput", "Лимит"));
+        QVERIFY(!fresh.trigger("addNote"));
+        QVERIFY(fresh.trigger("clearNotes"));
+        QVERIFY(fresh.items("notesList").isEmpty());
+        QVERIFY(fresh.trigger("addNote"));
+        QCOMPARE(fresh.items("notesList").size(), 1);
+        QVERIFY(document.removeWidget("notesCard")); QVERIFY(document.applyPreview());
+        QVERIFY(state.items("notesList").isEmpty());
+        QVERIFY(!state.trigger("addNote"));
+    }
+
+    void genericQmlInteraction() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        InteractionState interaction(&document);
+        WeatherService weather;
+        QQmlApplicationEngine engine;
+        QStringList warnings;
+        connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
+            for (const auto &error : errors) warnings << error.toString();
+        });
+        engine.rootContext()->setContextProperty("appDocument", &document);
+        engine.rootContext()->setContextProperty("weatherService", &weather);
+        engine.rootContext()->setContextProperty("interactionState", &interaction);
+        QVERIFY(document.previewPaletteDemo());
+        engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
+        QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);
+        QVERIFY(window);
+        auto *content = window->contentItem();
+        QTRY_VERIFY(findItem(content, "input-noteInput"));
+        QVERIFY(!findItem(content, "input-noteInput")->property("enabled").toBool());
+        QVERIFY(document.applyPreview());
+        QTRY_VERIFY(findItem(content, "input-noteInput"));
+        auto *input = findItem(content, "input-noteInput");
+        input->setProperty("text", "Работающая заметка");
+        QVERIFY(QMetaObject::invokeMethod(input, "textEdited"));
+        auto *add = findItem(content, "action-addNote");
+        QVERIFY(add);
+        QVERIFY(QMetaObject::invokeMethod(add, "clicked"));
+        QTRY_VERIFY(hasText(content, "• Работающая заметка"));
+        auto *clear = findItem(content, "action-clearNotes");
+        QVERIFY(clear);
+        QVERIFY(QMetaObject::invokeMethod(clear, "clicked"));
+        QTRY_VERIFY(hasText(content, "Список пуст"));
+        QVERIFY(document.renameWidget("addNote", "Добавить заметку"));
+        QVERIFY(document.applyPreview());
+        QTRY_VERIFY(hasText(content, "Добавить заметку"));
+        window->setWidth(360);
+        QTest::qWait(100);
+        QVERIFY(findItem(content, "action-addNote")->width() > 0);
+        QVERIFY(findItem(content, "input-noteInput")->height() > 0);
+        const auto capture = qEnvironmentVariable("MUTYVA_PALETTE_CAPTURE");
+        if (!capture.isEmpty()) {
+            window->resize(1020, 1100);
+            QTest::qWait(200);
+            const auto image = window->grabWindow();
+            QVERIFY(!image.isNull()); QVERIFY(image.save(capture));
+        }
+        window->setProperty("editorOpen", true);
+        auto *picker = window->findChild<QObject *>("widgetPicker");
+        QVERIFY(picker);
+        picker->setProperty("currentIndex", 2); // notesText, property text.
+        QVERIFY(QMetaObject::invokeMethod(picker, "activated", Q_ARG(int, 2)));
+        auto *propertyValue = window->findChild<QObject *>("propertyValue");
+        auto *update = window->findChild<QObject *>("updateWidgetProperty");
+        QVERIFY(propertyValue && update);
+        propertyValue->setProperty("text", "Редактирование текста работает");
+        QVERIFY(QMetaObject::invokeMethod(update, "clicked"));
+        QVERIFY2(document.hasPreview(), qPrintable(document.lastError()));
+        QVERIFY(document.applyPreview());
+        QTRY_VERIFY(hasText(content, "Редактирование текста работает"));
+        QTRY_COMPARE(picker->property("currentIndex").toInt(), 2);
+        auto *move = window->findChild<QObject *>("moveInto");
+        QVERIFY(move);
+        QVERIFY(QMetaObject::invokeMethod(move, "clicked"));
+        QVERIFY2(document.hasPreview(), qPrintable(document.lastError()));
+        QVERIFY(document.applyPreview());
+        QCOMPARE(document.widgets()[0].toMap().value("id").toString(), "notesText");
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
     void bundledSchemasAndCatalog() {
         QString error;
         QVERIFY2(DeclarativeRuntime::validateDocument(baseline(), error), qPrintable(error));
-        QCOMPARE(DeclarativeRuntime::catalog().size(), 5);
+        QCOMPARE(DeclarativeRuntime::catalog().size(), 12);
         const auto widgetSchema = DeclarativeRuntime::bundledSchema("app").value("$defs").toObject()
                                       .value("widget").toObject().value("properties").toObject();
         QSet<QString> kinds;
@@ -53,7 +247,7 @@ private slots:
             QVERIFY(!kinds.contains(kind)); kinds.insert(kind);
             QVERIFY(widgetSchema.value("kind").toObject().value("enum").toArray().contains(kind));
             QCOMPARE(QJsonObject::fromVariantMap(descriptor.value("writableProperties").toMap()).value("title"), widgetSchema.value("title"));
-            QVERIFY(!descriptor.value("bindings").toList().isEmpty());
+            QVERIFY(descriptor.contains("bindings"));
             QVERIFY(!descriptor.value("description").toString().isEmpty());
             auto doc = baseline();
             auto widgets = doc.value("widgets").toArray();
@@ -77,7 +271,7 @@ private slots:
         QCOMPARE(context.value("currentApplication").toObject(), doc);
         QCOMPARE(context.value("userRequest").toString(), QString::fromUtf8(request));
         QCOMPARE(context.value("baseGeneration").toInt(), 7);
-        QCOMPARE(context.value("installedComponentCatalog").toArray().size(), 5);
+        QCOMPARE(context.value("installedComponentCatalog").toArray().size(), 12);
         QVERIFY(context.contains("designerResponseSchema"));
         QVERIFY(!context.contains("weatherReadings"));
         QVERIFY(!context.contains("history"));
@@ -323,6 +517,7 @@ private slots:
         QTemporaryDir folder;
         AppDocument document(nullptr, folder.path());
         WeatherService weather;
+        InteractionState interaction(&document);
         QQmlApplicationEngine engine;
         QStringList warnings;
         connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
@@ -330,6 +525,7 @@ private slots:
         });
         engine.rootContext()->setContextProperty("appDocument", &document);
         engine.rootContext()->setContextProperty("weatherService", &weather);
+        engine.rootContext()->setContextProperty("interactionState", &interaction);
         engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
         QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
         auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects()[0]);
@@ -375,6 +571,7 @@ private slots:
         auto *removeButton = window->findChild<QObject *>("removeWidget");
         QVERIFY(picker && moveButton && removeButton);
         picker->setProperty("currentIndex", 1);
+        QVERIFY(QMetaObject::invokeMethod(picker, "activated", Q_ARG(int, 1)));
         QVERIFY(QMetaObject::invokeMethod(moveButton, "clicked"));
         QVERIFY(document.hasPreview());
         QCOMPARE(document.previewWidgets()[0].toMap().value("id").toString(), "currentWeather");

@@ -5,6 +5,7 @@ import QtQuick.Layouts
 Loader {
     id: host
     property var definition: ({})
+    property var documentWidgets: appDocument.hasPreview ? appDocument.previewWidgets : appDocument.widgets
     objectName: "widget-" + (definition.id || "unknown")
     Layout.fillWidth: true
     Layout.preferredHeight: item ? item.implicitHeight : 1
@@ -15,8 +16,14 @@ Loader {
         case "forecast-list": return forecastList;
         case "air-card": return airCard;
         case "humidity-card": return humidityCard;
+        case "text": case "card": case "stack": case "row":
+        case "button": case "input": case "list": return generalWidget;
         default: return unknownCard;
         }
+    }
+    Component {
+        id: generalWidget
+        GeneralWidget { definition: host.definition; widgets: host.documentWidgets }
     }
     Component {
         id: citySearch

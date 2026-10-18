@@ -29,6 +29,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `starter/` + root `CMakeLists.txt` | Qt 6 editor with live APIs, schema-checked documents, four mutation operations and preview |
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
+| `docs/12_GENERAL_PALETTE.md` + `examples/general-workspace.mutyva.json` | Seven general components, nested v2 layouts and an interactive Notes example |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Quickest path to a visible result
@@ -41,11 +42,13 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
 7. Implement `docs/03_CHATGPT_AUTH.md` and connect the real AI mutation request to the existing validation/preview/commit path.
 
-**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Data bindings are fixed per registered component, not user expressions. The schema checker implements the vocabulary used by the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; stable-ID preservation of transient control state is future work.
+**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Weather bindings are fixed per component; general controls support typed session actions. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic input/list values are kept separately by stable ID, while weather search view state is not reconciled yet.
 
 ## Build and tests
 
 **Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. No inference request is sent yet. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
+
+**General palette:** press **Пример: заметки**, review and Apply. The example uses Text, Card, Stack, Row, Input, Button and List. Input/append/clear work without AI. Configuration persists; note data currently lives only in the process session. Declarations v1 migrate to v2 by appending a new generation, preserving old snapshots. The editor exposes per-kind properties and parent containers. See `docs/12_GENERAL_PALETTE.md`.
 
 Enable tests with `-DBUILD_TESTING=ON` (requires the Qt Test module), build, then run `ctest --test-dir build -C Release --output-on-failure`. Tests use temporary stores and offline QML rendering; they do not modify the user's saved generations or contact weather APIs. Use `-DBUILD_TESTING=OFF` for an application-only build.
 

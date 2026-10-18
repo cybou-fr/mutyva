@@ -55,6 +55,11 @@ AppDocument::AppDocument(QObject *parent, const QString &storageFolder) : QObjec
                 DeclarativeRuntime::validateDocument(saved, m_error)) {
                 m_generation = n;
                 m_document = saved;
+                if (saved.value("schemaVersion") == QJsonValue(1)) {
+                    auto upgraded = saved;
+                    upgraded.insert("schemaVersion", 2);
+                    commit(upgraded); // Append migration; never rewrite the v1 snapshot.
+                }
                 return;
             }
         }
@@ -130,8 +135,11 @@ bool AppDocument::commit(const QJsonObject &next) {
     return true;
 }
 
-bool AppDocument::stage(const QJsonObject &candidate, const QString &summary) {
+bool AppDocument::stage(const QJsonObject &proposed, const QString &summary) {
     QString error;
+    if (!DeclarativeRuntime::validateDocument(proposed, error)) return reject(error);
+    auto candidate = proposed;
+    candidate.insert("schemaVersion", 2);
     if (!DeclarativeRuntime::validateDocument(candidate, error)) return reject(error);
     if (candidate.value("id") != m_document.value("id")) return reject("Нельзя изменить ID приложения");
     if (candidate.value("permissions") != m_document.value("permissions") ||
@@ -156,10 +164,14 @@ bool AppDocument::stage(const QJsonObject &candidate, const QString &summary) {
                 changes << "Тип " + id + ": " + before[id].value("kind").toString() + " → " + w.value("kind").toString();
             if (before[id].value("title") != w.value("title"))
                 changes << "Заголовок " + id + ": «" + before[id].value("title").toString() + "» → «" + w.value("title").toString() + "»";
+            for (const auto &property : {"text", "value", "placeholder", "items", "action", "parent"})
+                if (before[id].value(property) != w.value(property))
+                    changes << "Изменить " + id + "." + property + ": " +
+                        QString::fromUtf8(QJsonDocument(QJsonArray{w.value(property)}).toJson(QJsonDocument::Compact));
         }
     }
     for (const auto &id : oldOrder)
-        if (!after.contains(id)) changes << "− Удалить " + id;
+        if (!after.contains(id)) changes << "− Удалить " + id + " (значения сеанса будут потеряны)";
     if (oldOrder != newOrder) changes << "Порядок: " + newOrder.join(" → ");
     if (candidate.value("name") != m_document.value("name")) changes << "Имя: " + candidate.value("name").toString();
     if (candidate.value("description") != m_document.value("description")) changes << "Описание приложения изменено";
@@ -195,7 +207,7 @@ bool AppDocument::previewDocument(const QString &json) {
 }
 
 bool AppDocument::propose(const QJsonObject &operation, const QString &summary) {
-    const QJsonObject proposal{{"schemaVersion", 1}, {"appId", m_document.value("id")},
+    const QJsonObject proposal{{"schemaVersion", 2}, {"appId", m_document.value("id")},
                                {"intent", summary}, {"operations", QJsonArray{operation}}};
     return previewMutation(QString::fromUtf8(QJsonDocument(proposal).toJson()));
 }
@@ -203,8 +215,12 @@ bool AppDocument::propose(const QJsonObject &operation, const QString &summary) 
 bool AppDocument::addWidget(const QString &kind) {
     const auto entries = catalog();
     QString title;
+    QJsonObject defaults;
     for (const auto &entry : entries)
-        if (entry.toMap().value("kind").toString() == kind) title = entry.toMap().value("title").toString();
+        if (entry.toMap().value("kind").toString() == kind) {
+            title = entry.toMap().value("title").toString();
+            defaults = QJsonObject::fromVariantMap(entry.toMap().value("defaults").toMap());
+        }
     const auto widgets = m_document.value("widgets").toArray();
     QString id;
     for (int i = 1; i <= 101; ++i) {
@@ -213,7 +229,8 @@ bool AppDocument::addWidget(const QString &kind) {
         for (const auto &w : widgets) if (w.toObject().value("id").toString() == id) found = true;
         if (!found) break;
     }
-    return propose({{"op", "addWidget"}, {"widget", QJsonObject{{"id", id}, {"kind", kind}, {"title", title}}}},
+    defaults.insert("id", id); defaults.insert("kind", kind); defaults.insert("title", title);
+    return propose({{"op", "addWidget"}, {"widget", defaults}},
                    "Добавить: " + title);
 }
 
@@ -230,6 +247,16 @@ bool AppDocument::removeWidget(const QString &id) {
 bool AppDocument::renameWidget(const QString &id, const QString &title) {
     return propose({{"op", "updateProperty"}, {"id", id}, {"path", "title"}, {"value", title}},
                    "Заголовок " + id + ": " + title);
+}
+
+bool AppDocument::updateWidgetProperty(const QString &id, const QString &path, const QVariant &value) {
+    return propose({{"op", "updateProperty"}, {"id", id}, {"path", path}, {"value", QJsonValue::fromVariant(value)}},
+                   "Изменить свойство " + id + "." + path);
+}
+
+bool AppDocument::moveInto(const QString &id, const QString &parent) {
+    return propose({{"op", "moveWidget"}, {"id", id}, {"after", ""}, {"parent", parent}},
+                   "Переместить " + id + (parent.isEmpty() ? " в корень" : " в контейнер " + parent));
 }
 
 bool AppDocument::moveWidget(const QString &id, const QString &after) {
@@ -255,6 +282,13 @@ bool AppDocument::resetDemo() {
     QJsonObject initial;
     if (!loadDocument(":/examples/city-pulse.mutyva.json", initial)) return reject(m_error);
     return stage(initial, "Восстановить исходный интерфейс");
+}
+
+bool AppDocument::previewPaletteDemo() {
+    cancelPreview();
+    QJsonObject demo;
+    if (!loadDocument(":/examples/general-workspace.mutyva.json", demo)) return reject(m_error);
+    return stage(demo, "Открыть пример общей палитры: заметки и погода");
 }
 
 bool AppDocument::prepareDesignerContext(const QString &request) {

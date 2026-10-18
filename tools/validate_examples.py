@@ -9,7 +9,7 @@ mutation = json.loads((root / "examples/mutations/add-humidity-card.json").read_
 for name in ("app.schema.json", "mutation.schema.json"):
     schema = json.loads((root / "specs" / name).read_text(encoding="utf-8"))
     assert schema["$schema"].endswith("2020-12/schema")
-assert application["schemaVersion"] == mutation["schemaVersion"] == 1
+assert application["schemaVersion"] == mutation["schemaVersion"] == 2
 assert application["id"] == mutation["appId"]
 known_kinds = set(json.loads((root / "specs/app.schema.json").read_text(encoding="utf-8"))["$defs"]["widget"]["properties"]["kind"]["enum"])
 widgets = application["widgets"]

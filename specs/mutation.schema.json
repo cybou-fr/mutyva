@@ -3,46 +3,116 @@
   "$id": "https://mutyva.invalid/specs/mutation.schema.json",
   "title": "MUTYVA MVP mutation proposal",
   "type": "object",
-  "required": ["schemaVersion", "appId", "operations"],
+  "required": [
+    "schemaVersion",
+    "appId",
+    "operations"
+  ],
   "properties": {
-    "schemaVersion": {"const": 1},
-    "appId": {"type": "string", "minLength": 3},
-    "intent": {"type": "string", "maxLength": 600},
+    "schemaVersion": {
+      "const": 2
+    },
+    "appId": {
+      "type": "string",
+      "minLength": 3
+    },
+    "intent": {
+      "type": "string",
+      "maxLength": 600
+    },
     "operations": {
-      "type": "array", "minItems": 1, "maxItems": 20,
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
       "items": {
         "oneOf": [
           {
-            "type": "object", "required": ["op", "widget"],
+            "type": "object",
+            "required": [
+              "op",
+              "widget"
+            ],
             "properties": {
-              "op": {"const": "addWidget"},
-              "widget": {"$ref": "app.schema.json#/$defs/widget"},
-              "after": {"type": "string"}
-            }, "additionalProperties": false
+              "op": {
+                "const": "addWidget"
+              },
+              "widget": {
+                "$ref": "app.schema.json#/$defs/widget"
+              },
+              "after": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
           },
           {
-            "type": "object", "required": ["op", "id"],
+            "type": "object",
+            "required": [
+              "op",
+              "id"
+            ],
             "properties": {
-              "op": {"const": "removeWidget"},
-              "id": {"type": "string"}
-            }, "additionalProperties": false
+              "op": {
+                "const": "removeWidget"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
           },
           {
-            "type": "object", "required": ["op", "id", "path", "value"],
+            "type": "object",
+            "required": [
+              "op",
+              "id",
+              "path",
+              "value"
+            ],
             "properties": {
-              "op": {"const": "updateProperty"},
-              "id": {"type": "string"},
-              "path": {"enum": ["title"]},
-              "value": {"type": "string", "maxLength": 120}
-            }, "additionalProperties": false
+              "op": {
+                "const": "updateProperty"
+              },
+              "id": {
+                "type": "string"
+              },
+              "path": {
+                "enum": [
+                  "title",
+                  "text",
+                  "value",
+                  "placeholder",
+                  "items",
+                  "action"
+                ]
+              },
+              "value": {}
+            },
+            "additionalProperties": false
           },
           {
-            "type": "object", "required": ["op", "id", "after"],
+            "type": "object",
+            "required": [
+              "op",
+              "id",
+              "after"
+            ],
             "properties": {
-              "op": {"const": "moveWidget"},
-              "id": {"type": "string"},
-              "after": {"type": "string"}
-            }, "additionalProperties": false
+              "op": {
+                "const": "moveWidget"
+              },
+              "id": {
+                "type": "string"
+              },
+              "after": {
+                "type": "string"
+              },
+              "parent": {
+                "type": "string",
+                "maxLength": 64
+              }
+            },
+            "additionalProperties": false
           }
         ]
       }

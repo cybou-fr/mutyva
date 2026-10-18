@@ -14,7 +14,7 @@ Treat every MUTYVA app as a **versioned declarative document** interpreted by th
 
 ## MVP schema
 
-See `specs/app.schema.json` and `specs/mutation.schema.json` (JSON Schema 2020-12). Start simple: `schemaVersion=1`, app `id`, `name`, widgets, sources, permissions. `widgets` are ordered with stable IDs, known `kind`s and display/title metadata. Source types are explicit (`rest`, `sqlite` later).
+See `specs/app.schema.json` and `specs/mutation.schema.json` (JSON Schema 2020-12). Current schemaVersion is 2: app id/name, ordered widgets, parent references to card/stack/row containers, per-kind properties, sources and permissions. Legacy v1 schemas are retained for validation and append-only migration. Source types are explicit (`rest`, `sqlite` later).
 
 ### Safe mutation operations (MVP)
 
@@ -29,9 +29,9 @@ No free-form Qt objects, arbitrary expressions, system commands, shell, filesyst
 
 `DeclarativeRuntime` loads the bundled app and mutation schemas, checks their supported vocabulary and enforces unique widget/source IDs, registered component kinds, required fixed sources and the Open-Meteo permission allowlist. It constructs a candidate copy and only returns it after the entire ordered batch validates. Application declarations loaded from disk also pass this validation.
 
-All four operations are available from **Изменить интерфейс**, and JSON can be pasted/edited as a declaration or mutation. `updateProperty` currently allows only a string `title`. An omitted `addWidget.after` appends; an empty `after` inserts/moves to the beginning. Nonempty anchors must exist at that point in the batch. Moving after oneself is rejected. Adding without a title uses the renderer's default title; an explicit empty title is kept empty.
+All four operations are available from **Изменить интерфейс**, and JSON can be pasted/edited as a declaration or mutation. updateProperty is restricted to the selected kind's catalogued properties. An omitted addWidget.after appends within its parent; an empty after inserts/moves to the beginning. Nonempty anchors must be siblings in the same container. moveWidget may set parent; cycles and moving after oneself are rejected. Removing a container removes its subtree, with the full diff shown in preview. See `12_GENERAL_PALETTE.md` for actions and session data.
 
-Preview renders the candidate without changing the active document or disk. Apply saves a new generation; Cancel restores the committed view. Whole-document editing cannot change the application ID, data sources or permissions in this slice. Deleting widgets discards only view configuration in the current demo; it does not delete external data. Preview currently recreates delegates, so transient text-field state is not reconciled by ID yet.
+Preview renders the candidate without changing the active document or disk. Apply saves a new generation; Cancel restores the committed view. Whole-document editing cannot change the application ID, data sources or permissions in this slice. Deletion also drops the removed generic controls' session values, with a preview warning; it does not delete external data. Delegates are recreated, but generic input/list state is kept separately by stable ID. The weather search field's transient view state is not reconciled yet.
 
 ## Pipeline / invariants
 

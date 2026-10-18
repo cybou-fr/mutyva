@@ -1,11 +1,228 @@
 {
-  "version": 1,
-  "layout": "ordered-vertical-stack",
+  "version": 2,
+  "layout": "parent-referenced-containers",
   "components": [
-    {"kind":"city-search","title":"Поиск города","description":"Ввод названия города и поиск через Open-Meteo.","source":"geocoding","bindings":[{"path":"city.search","type":"string","access":"action-input"}],"actions":["searchCity"],"permissions":["network:*.open-meteo.com"]},
-    {"kind":"weather-card","title":"Текущая погода","description":"Температура и скорость ветра для выбранного города.","source":"weather","bindings":[{"path":"weather.current.temperature","type":"number","unit":"°C","access":"read-only"},{"path":"weather.current.wind","type":"number","unit":"km/h","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
-    {"kind":"forecast-list","title":"Прогноз на 7 дней","description":"Список дат, минимальной и максимальной температуры и осадков.","source":"weather","bindings":[{"path":"weather.daily","type":"array","items":{"date":"string","min":"number","max":"number","rain":"number"},"access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
-    {"kind":"air-card","title":"Качество воздуха","description":"European Air Quality Index выбранного города.","source":"airQuality","bindings":[{"path":"air.current.european_aqi","type":"integer","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]},
-    {"kind":"humidity-card","title":"Влажность воздуха","description":"Относительная влажность из уже загружаемого прогноза. Отдельный API-запрос не нужен.","source":"weather","bindings":[{"path":"weather.current.humidity","type":"integer","unit":"%","access":"read-only"}],"actions":[],"permissions":["network:*.open-meteo.com"]}
+    {
+      "kind": "city-search",
+      "title": "Поиск города",
+      "description": "Ввод названия города и поиск через Open-Meteo.",
+      "source": "geocoding",
+      "bindings": [
+        {
+          "path": "city.search",
+          "type": "string",
+          "access": "action-input"
+        }
+      ],
+      "actions": [
+        "searchCity"
+      ],
+      "permissions": [
+        "network:*.open-meteo.com"
+      ],
+      "propertyNames": [
+        "title"
+      ]
+    },
+    {
+      "kind": "weather-card",
+      "title": "Текущая погода",
+      "description": "Температура и скорость ветра для выбранного города.",
+      "source": "weather",
+      "bindings": [
+        {
+          "path": "weather.current.temperature",
+          "type": "number",
+          "unit": "°C",
+          "access": "read-only"
+        },
+        {
+          "path": "weather.current.wind",
+          "type": "number",
+          "unit": "km/h",
+          "access": "read-only"
+        }
+      ],
+      "actions": [],
+      "permissions": [
+        "network:*.open-meteo.com"
+      ],
+      "propertyNames": [
+        "title"
+      ]
+    },
+    {
+      "kind": "forecast-list",
+      "title": "Прогноз на 7 дней",
+      "description": "Список дат, минимальной и максимальной температуры и осадков.",
+      "source": "weather",
+      "bindings": [
+        {
+          "path": "weather.daily",
+          "type": "array",
+          "items": {
+            "date": "string",
+            "min": "number",
+            "max": "number",
+            "rain": "number"
+          },
+          "access": "read-only"
+        }
+      ],
+      "actions": [],
+      "permissions": [
+        "network:*.open-meteo.com"
+      ],
+      "propertyNames": [
+        "title"
+      ]
+    },
+    {
+      "kind": "air-card",
+      "title": "Качество воздуха",
+      "description": "European Air Quality Index выбранного города.",
+      "source": "airQuality",
+      "bindings": [
+        {
+          "path": "air.current.european_aqi",
+          "type": "integer",
+          "access": "read-only"
+        }
+      ],
+      "actions": [],
+      "permissions": [
+        "network:*.open-meteo.com"
+      ],
+      "propertyNames": [
+        "title"
+      ]
+    },
+    {
+      "kind": "humidity-card",
+      "title": "Влажность воздуха",
+      "description": "Относительная влажность из уже загружаемого прогноза. Отдельный API-запрос не нужен.",
+      "source": "weather",
+      "bindings": [
+        {
+          "path": "weather.current.humidity",
+          "type": "integer",
+          "unit": "%",
+          "access": "read-only"
+        }
+      ],
+      "actions": [],
+      "permissions": [
+        "network:*.open-meteo.com"
+      ],
+      "propertyNames": [
+        "title"
+      ]
+    },
+    {
+      "kind": "text",
+      "title": "Текст",
+      "description": "Обычный текст без HTML и выражений.",
+      "container": false,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title",
+        "text"
+      ],
+      "defaults": {
+        "text": "Новый текст"
+      }
+    },
+    {
+      "kind": "card",
+      "title": "Карточка",
+      "description": "Контейнер с фоном и заголовком. Вложенные виджеты ссылаются на его ID через parent.",
+      "container": true,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title"
+      ],
+      "defaults": {}
+    },
+    {
+      "kind": "stack",
+      "title": "Колонка",
+      "description": "Вертикальный контейнер вложенных компонентов.",
+      "container": true,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title"
+      ],
+      "defaults": {}
+    },
+    {
+      "kind": "row",
+      "title": "Строка",
+      "description": "Горизонтальный контейнер; на узком экране элементы располагаются вертикально.",
+      "container": true,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title"
+      ],
+      "defaults": {}
+    },
+    {
+      "kind": "button",
+      "title": "Кнопка",
+      "description": "Пользователь запускает разрешённое действие append-item или clear-list. Без action кнопка неактивна.",
+      "container": false,
+      "bindings": [],
+      "actions": [
+        "append-item",
+        "clear-list"
+      ],
+      "permissions": [],
+      "propertyNames": [
+        "title",
+        "action"
+      ],
+      "defaults": {}
+    },
+    {
+      "kind": "input",
+      "title": "Поле ввода",
+      "description": "Текстовое значение в памяти сеанса, до 500 символов.",
+      "container": false,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title",
+        "value",
+        "placeholder"
+      ],
+      "defaults": {
+        "value": "",
+        "placeholder": "Введите текст"
+      }
+    },
+    {
+      "kind": "list",
+      "title": "Список",
+      "description": "Список строк в памяти сеанса, до 50 элементов.",
+      "container": false,
+      "bindings": [],
+      "actions": [],
+      "permissions": [],
+      "propertyNames": [
+        "title",
+        "items"
+      ],
+      "defaults": {
+        "items": []
+      }
+    }
   ]
 }

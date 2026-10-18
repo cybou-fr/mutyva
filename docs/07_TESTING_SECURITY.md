@@ -38,6 +38,8 @@ Implemented in `tests/RuntimeTest.cpp`: bundled-schema/catalog checks, document 
 
 Remaining suites and expansion:
 
+General-palette coverage adds v1→v2 migration without overwriting the source snapshot, parent/type/reference/cycle/depth checks, subtree deletion, reparenting, per-kind properties, append/clear limits, preview action blocking, session-data exclusion from AI context/history, nested QML interaction and narrow-window rendering. Generic session data is currently in memory, not persistent storage.
+
 - `AppDocumentTest` — parse, canonical serialize, stable IDs, unknown/duplicate references.
 - `MutationEngineTest` — allowable ops, props, permissions, rollback atomicity.
 - `SseDecoderTest` — fragmented chunks, multi-line event payload, completion and error events.
