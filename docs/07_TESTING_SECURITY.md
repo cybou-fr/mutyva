@@ -38,7 +38,7 @@ Implemented in `tests/RuntimeTest.cpp`: bundled-schema/catalog checks, document 
 
 Remaining suites and expansion:
 
-General-palette coverage adds v1→v2 migration without overwriting the source snapshot, parent/type/reference/cycle/depth checks, subtree deletion, reparenting, per-kind properties, append/clear limits, preview action blocking, session-data exclusion from AI context/history, nested QML interaction and narrow-window rendering. Generic session data is currently in memory, not persistent storage.
+General-palette coverage adds v1→v2 migration without overwriting the source snapshot, parent/type/reference/cycle/depth checks, subtree deletion, reparenting, per-kind properties, append/clear limits, preview action blocking, local-data exclusion from AI context/history, nested QML interaction and narrow-window rendering. SQLite coverage verifies restart persistence, app isolation, retained data after widget removal/restoration, stale-writer rejection, write-lock handling, transaction rollback, corrupt physical/logical databases and storage limits. Tests use temporary databases.
 
 - `AppDocumentTest` — parse, canonical serialize, stable IDs, unknown/duplicate references.
 - `MutationEngineTest` — allowable ops, props, permissions, rollback atomicity.

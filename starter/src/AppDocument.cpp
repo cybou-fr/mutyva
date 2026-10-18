@@ -171,7 +171,7 @@ bool AppDocument::stage(const QJsonObject &proposed, const QString &summary) {
         }
     }
     for (const auto &id : oldOrder)
-        if (!after.contains(id)) changes << "− Удалить " + id + " (значения сеанса будут потеряны)";
+        if (!after.contains(id)) changes << "− Удалить " + id + " (локальные данные сохранены отдельно)";
     if (oldOrder != newOrder) changes << "Порядок: " + newOrder.join(" → ");
     if (candidate.value("name") != m_document.value("name")) changes << "Имя: " + candidate.value("name").toString();
     if (candidate.value("description") != m_document.value("description")) changes << "Описание приложения изменено";

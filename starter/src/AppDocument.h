@@ -21,6 +21,7 @@ public:
     QVariantList widgets() const;
     QVariantList catalog() const;
     QString documentJson() const;
+    QString userDataPath() const { return m_folder + "/data/user-data.sqlite"; }
     bool hasPreview() const { return !m_candidate.isEmpty(); }
     QVariantList previewWidgets() const;
     QString previewSummary() const { return m_summary; }

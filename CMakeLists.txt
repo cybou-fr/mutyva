@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(MUTYVA_Demo VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Sql)
 qt_standard_project_setup(REQUIRES 6.8)
 qt_add_library(mutyva-core STATIC
     starter/src/DeclarativeRuntime.cpp starter/src/DeclarativeRuntime.h
@@ -10,9 +10,10 @@ qt_add_library(mutyva-core STATIC
     starter/src/DesignerContext.cpp starter/src/DesignerContext.h
     starter/src/InteractionState.cpp starter/src/InteractionState.h
     starter/src/BrandIdentity.cpp starter/src/BrandIdentity.h
+    starter/src/LocalDataStore.cpp starter/src/LocalDataStore.h
 )
 target_include_directories(mutyva-core PUBLIC starter/src)
-target_link_libraries(mutyva-core PUBLIC Qt6::Core)
+target_link_libraries(mutyva-core PUBLIC Qt6::Core Qt6::Sql)
 qt_add_resources(mutyva-core "runtime_data" PREFIX "/" FILES
     specs/app.schema.json specs/mutation.schema.json
     examples/city-pulse.mutyva.json examples/mutations/add-humidity-card.json

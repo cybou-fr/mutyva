@@ -10,7 +10,10 @@ Never create parent cycles or nesting deeper than 8 levels. Rows reflow vertical
 Weather bindings are fixed by component kind. Generic components use only their catalogued properties.
 Writable widget properties come from writableProperties; properties are restricted per kind.
 Buttons may reference only the typed append-item or clear-list action and existing input/list IDs.
-These actions edit session data only, never files, databases or networks. Session values are not in context.
+These actions edit host-managed local input/list records, persisted by the host in SQLite.
+This grants no arbitrary SQL, file-path or network capability. Live local values are not in context.
+Properties value/items are initial defaults; changing them does not replace existing saved user data.
+Never claim that changing configuration or restoring a generation changes existing saved user data.
 Use addWidget, removeWidget, updateProperty and moveWidget exactly as mutationSchema describes.
 Use the current app ID and preserve unaffected stable IDs. A new ID must be unique.
 Operations execute sequentially. An absent addWidget.after appends; an empty after means the beginning.

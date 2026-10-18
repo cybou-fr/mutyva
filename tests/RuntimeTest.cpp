@@ -17,6 +17,9 @@
 #include "BrandIdentity.h"
 #include <QImage>
 #include <QIcon>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QUuid>
 
 namespace {
 QJsonObject read(const QString &path) {
@@ -44,11 +47,161 @@ QQuickItem *findItem(QQuickItem *item, const QString &name) {
     for (auto *child : item->childItems()) if (auto *found = findItem(child, name)) return found;
     return nullptr;
 }
+bool dataSql(const QString &path, const QString &sql) {
+    const auto name = "test-data-" + QUuid::createUuid().toString();
+    bool result = false;
+    {
+        auto db = QSqlDatabase::addDatabase("QSQLITE", name);
+        db.setDatabaseName(path);
+        if (db.open()) { QSqlQuery query(db); result = query.exec(sql); }
+        db.close();
+    }
+    QSqlDatabase::removeDatabase(name);
+    return result;
+}
 }
 
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void localDataRestartAndHistory() {
+        QTemporaryDir folder;
+        QString secret = "Личные данные, которых нет в конфигурации";
+        {
+            AppDocument document(nullptr, folder.path());
+            QVERIFY(document.previewPaletteDemo()); QVERIFY(document.applyPreview());
+            InteractionState data(&document);
+            QVERIFY2(data.ready(), qPrintable(data.lastError()));
+            const auto saved = document.documentJson();
+            const auto generation = document.generation();
+            QVERIFY(data.setValue("noteInput", secret));
+            QCOMPARE(document.documentJson(), saved);
+            QCOMPARE(document.generation(), generation);
+        }
+        {
+            AppDocument document(nullptr, folder.path());
+            InteractionState data(&document);
+            QVERIFY(data.ready());
+            QCOMPARE(data.value("noteInput"), secret); // Draft survived process-equivalent reconstruction.
+            QVERIFY(data.trigger("addNote"));
+            QCOMPARE(data.items("notesList").size(), 2);
+            QCOMPARE(data.value("noteInput"), QString());
+            QVERIFY(document.prepareDesignerContext("Измени заголовок"));
+            QVERIFY(!document.designerContextJson().contains(secret));
+            for (const auto &file : QDir(folder.path()).entryList({"generation-*.json"}, QDir::Files))
+                QVERIFY(!bytes(folder.filePath(file)).contains(secret.toUtf8()));
+            QVERIFY(document.removeWidget("notesCard")); QVERIFY(document.applyPreview());
+            QCOMPARE(data.items("notesList").size(), 2); // Hiding controls never deletes their data.
+        }
+        {
+            AppDocument document(nullptr, folder.path());
+            InteractionState data(&document);
+            QCOMPARE(data.items("notesList").size(), 2);
+            QVERIFY(!data.trigger("addNote")); // Hidden buttons cannot execute.
+            QVERIFY(document.previewPaletteDemo()); QVERIFY(document.applyPreview());
+            QCOMPARE(data.items("notesList").size(), 2);
+            QVERIFY(data.trigger("clearNotes"));
+            QVERIFY(data.items("notesList").isEmpty());
+            QVERIFY(document.renameWidget("notesCard", "Другая версия")); QVERIFY(document.applyPreview());
+            QVERIFY(document.rollback()); QVERIFY(document.applyPreview());
+            QVERIFY(data.items("notesList").isEmpty()); // Config rollback never undoes a clear.
+        }
+        AppDocument document(nullptr, folder.path());
+        InteractionState data(&document);
+        QVERIFY(data.ready()); QVERIFY(data.items("notesList").isEmpty());
+    }
+
+    void localDataConflictAndTransactionFailure() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        QVERIFY(document.previewPaletteDemo()); QVERIFY(document.applyPreview());
+        InteractionState first(&document), second(&document);
+        QVERIFY(first.setValue("noteInput", "Сохранено первым окном"));
+        QVERIFY(!second.setValue("noteInput", "Устаревший черновик"));
+        QVERIFY(!second.ready());
+        QVERIFY(second.reload());
+        QCOMPARE(second.value("noteInput"), QString::fromUtf8("Сохранено первым окном"));
+        QVERIFY(second.trigger("addNote"));
+        QVERIFY(first.reload());
+        QCOMPARE(first.items("notesList").size(), 2);
+        QVERIFY(first.setValue("noteInput", "Транзакционный черновик"));
+        QVERIFY(dataSql(first.storagePath(), "CREATE TRIGGER deny_list BEFORE INSERT ON widget_data WHEN NEW.kind='list' BEGIN SELECT RAISE(FAIL,'write blocked'); END"));
+        QVERIFY(!first.trigger("addNote"));
+        QVERIFY(!first.ready());
+        QCOMPARE(first.value("noteInput"), QString::fromUtf8("Транзакционный черновик"));
+        QCOMPARE(first.items("notesList").size(), 2);
+        QVERIFY(second.reload());
+        QCOMPARE(second.value("noteInput"), QString::fromUtf8("Транзакционный черновик"));
+        QCOMPARE(second.items("notesList").size(), 2); // Earlier input update in the failed batch rolled back too.
+        QVERIFY(dataSql(first.storagePath(), "DROP TRIGGER deny_list"));
+        QVERIFY(first.reload()); QVERIFY(first.trigger("addNote"));
+        QCOMPARE(first.items("notesList").size(), 3);
+        QCOMPARE(first.value("noteInput"), QString());
+        LocalDataStore otherApp;
+        LocalDataSnapshot other;
+        QString error;
+        QVERIFY(otherApp.open(first.storagePath(), "another.app", other, error));
+        QVERIFY(other.inputs.isEmpty()); QVERIFY(other.lists.isEmpty());
+        other.inputs.insert("noteInput", "Отдельное приложение");
+        QVERIFY(otherApp.save(other, error));
+        QVERIFY(first.reload()); QCOMPARE(first.value("noteInput"), QString());
+        const auto lockName = "data-lock-" + QUuid::createUuid().toString();
+        {
+            auto db = QSqlDatabase::addDatabase("QSQLITE", lockName);
+            db.setDatabaseName(first.storagePath()); QVERIFY(db.open());
+            {
+                QSqlQuery lock(db); QVERIFY(lock.exec("BEGIN IMMEDIATE"));
+                QVERIFY(!first.setValue("noteInput", "Занято другим процессом"));
+                QCOMPARE(first.value("noteInput"), QString());
+                QVERIFY(lock.exec("ROLLBACK"));
+            }
+            db.close();
+        }
+        QSqlDatabase::removeDatabase(lockName);
+        QVERIFY(first.reload()); QVERIFY(first.ready());
+    }
+
+    void localDataCorruptionAndLimits() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        QVERIFY(document.previewPaletteDemo()); QVERIFY(document.applyPreview());
+        InteractionState data(&document);
+        QVERIFY(data.setValue("noteInput", "Сохранённый текст"));
+        QVERIFY(dataSql(data.storagePath(), "UPDATE widget_data SET payload='{\"value\":42}'"));
+        QVERIFY(!data.reload()); QVERIFY(!data.ready());
+        QVERIFY(!data.setValue("noteInput", "Не перезаписывать повреждение"));
+        QVERIFY(dataSql(data.storagePath(), "UPDATE widget_data SET payload='{\"value\":\"Recovered\"}'"));
+        QVERIFY(data.reload()); QCOMPARE(data.value("noteInput"), "Recovered");
+        QVERIFY(dataSql(data.storagePath(), "PRAGMA user_version=99"));
+        QVERIFY(!data.reload());
+        QVERIFY(dataSql(data.storagePath(), "PRAGMA user_version=1"));
+        QVERIFY(data.reload());
+        LocalDataStore store;
+        LocalDataSnapshot snapshot;
+        QString error;
+        QVERIFY(store.open(data.storagePath(), "limits.app", snapshot, error));
+        auto invalid = snapshot;
+        invalid.lists.insert("badList", QVariantList{42});
+        QVERIFY(!store.save(invalid, error));
+        invalid = snapshot;
+        for (int i = 0; i < 1001; ++i) invalid.inputs.insert("field" + QString::number(i), "");
+        QVERIFY(!store.save(invalid, error));
+        invalid = snapshot;
+        QVariantList list;
+        for (int i = 0; i < 50; ++i) list.append(QString(500, 'x'));
+        for (int i = 0; i < 200; ++i) invalid.lists.insert("list" + QString::number(i), list);
+        QVERIFY(!store.save(invalid, error));
+        QTemporaryDir brokenFolder;
+        AppDocument broken(nullptr, brokenFolder.path());
+        QVERIFY(QDir().mkpath(QFileInfo(broken.userDataPath()).absolutePath()));
+        QFile file(broken.userDataPath()); QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("not a SQLite database"); file.close();
+        const auto original = bytes(file.fileName());
+        InteractionState blocked(&broken);
+        QVERIFY(!blocked.ready()); QVERIFY(!blocked.reload());
+        QCOMPARE(bytes(file.fileName()), original);
+    }
+
     void brandingPresentation() {
         BrandIdentity branding(false);
         QVERIFY(!branding.welcomeRequired());
@@ -213,14 +366,18 @@ private slots:
         for (int i = 0; i < 50; ++i) full.append(QString::number(i));
         QVERIFY(document.updateWidgetProperty("notesList", "items", full)); QVERIFY(document.applyPreview());
         InteractionState fresh(&document);
+        QCOMPARE(fresh.items("notesList").size(), 2); // Saved values override changed configuration defaults.
         QVERIFY(fresh.setValue("noteInput", "Лимит"));
-        QVERIFY(!fresh.trigger("addNote"));
+        QVERIFY(fresh.trigger("addNote"));
+        QCOMPARE(fresh.items("notesList").size(), 3);
         QVERIFY(fresh.trigger("clearNotes"));
         QVERIFY(fresh.items("notesList").isEmpty());
+        QVERIFY(fresh.setValue("noteInput", "После очистки"));
         QVERIFY(fresh.trigger("addNote"));
         QCOMPARE(fresh.items("notesList").size(), 1);
         QVERIFY(document.removeWidget("notesCard")); QVERIFY(document.applyPreview());
-        QVERIFY(state.items("notesList").isEmpty());
+        QVERIFY(state.reload());
+        QCOMPARE(state.items("notesList").size(), 1);
         QVERIFY(!state.trigger("addNote"));
     }
 

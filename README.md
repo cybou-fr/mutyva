@@ -36,12 +36,13 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
 | `docs/12_GENERAL_PALETTE.md` + `examples/general-workspace.mutyva.json` | Seven general components, nested v2 layouts and an interactive Notes example |
+| `docs/13_LOCAL_DATA.md` | Persistent app-scoped SQLite data, transactional input/list actions and conflict recovery |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Quickest path to a visible result
 
-1. Install **Qt 6.8+** with Qt Quick, Qt Quick Controls and the desktop kit, CMake and C++20 toolchain.
+1. Install **Qt 6.8+** with Qt Quick, Qt Quick Controls, Qt SQL with QSQLITE and the desktop kit, CMake and C++20 toolchain.
 2. Open the root `CMakeLists.txt` in Qt Creator, or use `qt-cmake -S . -B build` then `cmake --build build --config Release`.
 3. Run `mutyva-demo` with internet access. It searches **Paris** and displays weather, a seven-day forecast and air quality via Open-Meteo.
 4. Press **+ Виджет влажности**: review the candidate interface, then press **Применить** to save a new generation or **Отмена** to discard it.
@@ -49,7 +50,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 6. Restart: the saved interface remains changed, without an AI request. **Предыдущее сохранение** previews the immediately preceding numeric snapshot; **Сбросить интерфейс** previews the bundled baseline. Both require Apply. A full history browser is the next slice.
 7. Implement `docs/03_CHATGPT_AUTH.md` and connect the real AI mutation request to the existing validation/preview/commit path.
 
-**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, SQL, production auth/security review and iOS verification remain work items. Weather bindings are fixed per component; general controls support typed session actions. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic input/list values are kept separately by stable ID, while weather search view state is not reconciled yet.
+**Important:** this is not the finished MVP. Mutations are local/manual; ChatGPT OAuth, AI calls, generic SQL connectors, production auth/security review and iOS verification remain work items. Weather bindings are fixed; general controls use typed actions and persist input/list data separately in SQLite. The schema checker supports the bundled schemas, not arbitrary JSON Schema documents. Preview reloads widget instances; generic values are kept by stable ID/kind, while weather search view state is not reconciled yet.
 
 ## Build and tests
 
@@ -57,7 +58,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 
 **Designer context:** open **Изменить интерфейс → Замысел и контекст AI**, enter a request and prepare/view the local packet. It includes product concept, the installed catalog, current saved declaration and schemas. To exercise response handling without a model, paste `examples/designer/add-humidity-response.json` in **Редактор JSON → Ответ AI** after preparing context. Proposal, clarification and unsupported responses are checked separately. No inference request is sent yet. See `docs/11_AI_DESIGN_CONTRACT.md` for the conceptual model and path toward a general component palette.
 
-**General palette:** press **Пример: заметки**, review and Apply. The example uses Text, Card, Stack, Row, Input, Button and List. Input/append/clear work without AI. Configuration persists; note data currently lives only in the process session. Declarations v1 migrate to v2 by appending a new generation, preserving old snapshots. The editor exposes per-kind properties and parent containers. See `docs/12_GENERAL_PALETTE.md`.
+**General palette:** press **Пример: заметки**, review and Apply. Text, Card, Stack, Row, Input, Button and List work without AI. Notes and input drafts persist in a separate SQLite database across restarts. Interface rollback does not roll back these data. **Перечитать данные** recovers from a stale-window conflict after showing an error. Qt SQL / QSQLITE is required. See `docs/12_GENERAL_PALETTE.md` and `docs/13_LOCAL_DATA.md`.
 
 Enable tests with `-DBUILD_TESTING=ON` (requires the Qt Test module), build, then run `ctest --test-dir build -C Release --output-on-failure`. Tests use temporary stores and offline QML rendering; they do not modify the user's saved generations or contact weather APIs. Use `-DBUILD_TESTING=OFF` for an application-only build.
 
@@ -74,7 +75,7 @@ No MUTYVA server, package registry, accounts, marketplace, backend, synced state
 ## Key technical choices
 
 - **Qt 6.8+**, **C++20**, **QML/Qt Quick**, **CMake**.
-- Local **SQLite** for catalog, history, settings and cached data in full MVP; starter uses local JSON snapshots to reduce bootstrap complexity.
+- Local **SQLite** for catalog, history, settings and cached data in full MVP; the current runtime uses JSON snapshots for interface history and a separate SQLite database for input/list user data.
 - Declarative and schema-validated application trees; QML renders **prebuilt registered components**. Do not load untrusted generated QML as code.
 - OpenAI **Sign in with ChatGPT** for eligible open-source local applications, OAuth2 Authorization Code + PKCE + OIDC; no unofficial ChatGPT web endpoints or stolen sessions.
 - Open-Meteo for a noncommercial demo; licensing/attribution requirements apply.

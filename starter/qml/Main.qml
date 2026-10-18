@@ -65,6 +65,12 @@ ApplicationWindow {
                 Layout.preferredHeight: childrenRect.height
                 spacing: 8
                 Button { objectName: "openAbout"; text: "О MUTYVA"; onClicked: aboutDialog.open() }
+                Button {
+                    objectName: "reloadData"; text: "Перечитать данные"
+                    onClicked: interactionState.reload()
+                    ToolTip.visible: hovered
+                    ToolTip.text: "SQLite: " + interactionState.storagePath
+                }
                 Button { text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
                 Button { text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
                 Button { text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }

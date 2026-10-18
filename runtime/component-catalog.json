@@ -193,7 +193,7 @@
     {
       "kind": "input",
       "title": "Поле ввода",
-      "description": "Текстовое значение в памяти сеанса, до 500 символов.",
+      "description": "Локальное текстовое значение в SQLite, до 500 символов.",
       "container": false,
       "bindings": [],
       "actions": [],
@@ -211,7 +211,7 @@
     {
       "kind": "list",
       "title": "Список",
-      "description": "Список строк в памяти сеанса, до 50 элементов.",
+      "description": "Локальный список строк в SQLite, до 50 элементов.",
       "container": false,
       "bindings": [],
       "actions": [],

@@ -90,7 +90,7 @@ Item {
                 wrapMode: Text.WrapAnywhere
                 color: actionButton.enabled ? brandIdentity.colors.foreground : "#7c8aa3"
             }
-            enabled: !appDocument.hasPreview && root.definition.action !== undefined
+            enabled: !appDocument.hasPreview && interactionState.ready && root.definition.action !== undefined
             onClicked: interactionState.trigger(root.definition.id)
         }
     }
@@ -108,8 +108,11 @@ Item {
                 maximumLength: 500
                 placeholderText: root.definition.placeholder || ""
                 text: { var revision = interactionState.revision; return appDocument.hasPreview ? (root.definition.value || "") : interactionState.value(root.definition.id, root.definition.value || "") }
-                enabled: !appDocument.hasPreview
-                onTextEdited: interactionState.setValue(root.definition.id, text)
+                enabled: !appDocument.hasPreview && interactionState.ready
+                onTextEdited: {
+                    if (!interactionState.setValue(root.definition.id, text))
+                        text = Qt.binding(function() { var revision = interactionState.revision; return interactionState.value(root.definition.id, root.definition.value || "") })
+                }
                 Accessible.name: root.definition.title || "Поле ввода"
             }
         }
