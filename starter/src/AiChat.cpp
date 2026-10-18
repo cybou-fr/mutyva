@@ -5,10 +5,11 @@
 #include <QJsonDocument>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QDebug>
 #include <memory>
 
-AiChat::AiChat(AppDocument *document, ChatSession *session, QObject *parent)
-    : QObject(parent), m_document(document), m_session(session) {
+AiChat::AiChat(AppDocument *document, ChatSession *session, QObject *parent, QNetworkAccessManager *network)
+    : QObject(parent), m_document(document), m_session(session), m_network(network ? network : &m_ownedNetwork) {
     connect(session, &ChatSession::changed, this, [this] {
         if (m_busy && !m_session->connected()) fail("Соединение с ChatGPT завершено. Войдите ещё раз.");
     });
@@ -34,6 +35,7 @@ bool AiChat::send(const QString &text) {
     if (!m_session->connected()) { fail("Сначала войдите через ChatGPT."); return false; }
     if (m_document->hasPreview()) { fail("Сначала подтвердите или отмените предложенное изменение."); return false; }
     if (!m_document->prepareDesignerContext(text)) { fail("Введите запрос от 1 до 4000 символов."); return false; }
+    m_diagnostics.clear();
     m_packet = QJsonDocument::fromJson(m_document->designerContextJson().toUtf8()).object();
     m_generation = m_document->generation();
     append("user", text.trimmed());
@@ -42,17 +44,30 @@ bool AiChat::send(const QString &text) {
     request.setRawHeader("Authorization", "Bearer " + m_session->accessToken());
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(30000);
-    auto *reply = m_network.get(request); m_reply = reply; reply->setReadBufferSize(64 * 1024);
+    auto *reply = m_network->get(request); m_reply = reply; reply->setReadBufferSize(64 * 1024);
     QTimer::singleShot(30000, reply, [reply] { if (!reply->isFinished()) reply->abort(); });
     const auto epoch = ++m_epoch;
     auto bytes = std::make_shared<QByteArray>();
-    connect(reply, &QNetworkReply::readyRead, this, [reply, bytes] { *bytes += reply->readAll(); if (bytes->size() > 512 * 1024) reply->abort(); });
+    connect(reply, &QNetworkReply::readyRead, this, [reply, bytes] { *bytes += reply->readAll(); if (bytes->size() > 4 * 1024 * 1024) reply->abort(); });
     connect(reply, &QNetworkReply::finished, this, [this, reply, bytes, epoch] {
         reply->deleteLater(); if (epoch != m_epoch) return;
-        m_reply.clear(); *bytes += reply->readAll();
-        const auto model = AiResponseStream::selectModel(QJsonDocument::fromJson(*bytes).object());
-        if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200 || bytes->size() > 512 * 1024 || model.isEmpty()) {
-            fail("Не удалось получить доступ к AI. Проверьте сеть, разрешения и лимиты ChatGPT."); return;
+        m_reply.clear(); if (reply->isOpen()) *bytes += reply->readAll();
+        if (bytes->size() > 4 * 1024 * 1024) { serviceFailure("models", reply, bytes->size(), "catalog_too_large"); return; }
+        if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200) {
+            serviceFailure("models", reply, bytes->size(), "http_or_network"); return;
+        }
+        QJsonParseError parse;
+        const auto catalog = QJsonDocument::fromJson(*bytes, &parse);
+        if (parse.error != QJsonParseError::NoError || !catalog.isObject()) {
+            serviceFailure("models", reply, bytes->size(), "invalid_json"); return;
+        }
+        const auto object = catalog.object();
+        if (!object.value("models").isArray()) {
+            serviceFailure("models", reply, bytes->size(), object.value("data").isArray() ? "api_catalog_instead_of_chatgpt" : "missing_models"); return;
+        }
+        const auto model = AiResponseStream::selectModel(object);
+        if (model.isEmpty()) {
+            serviceFailure("models", reply, bytes->size(), object.value("models").toArray().isEmpty() ? "empty_catalog" : "no_visible_model"); return;
         }
         this->request(model);
     });
@@ -78,7 +93,7 @@ void AiChat::request(const QString &model) {
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(60000);
-    auto *reply = m_network.post(request, bytes); m_reply = reply; reply->setReadBufferSize(64 * 1024);
+    auto *reply = m_network->post(request, bytes); m_reply = reply; reply->setReadBufferSize(64 * 1024);
     const auto epoch = m_epoch;
     QTimer::singleShot(180000, reply, [reply] { if (!reply->isFinished()) reply->abort(); });
     connect(reply, &QNetworkReply::readyRead, this, [this, reply, epoch] {
@@ -92,9 +107,11 @@ void AiChat::request(const QString &model) {
         m_reply.clear();
         const auto contentType = reply->header(QNetworkRequest::ContentTypeHeader).toString();
         if (reply->error() != QNetworkReply::NoError || reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() != 200 || !contentType.startsWith("text/event-stream")) {
-            fail(m_stream.error().isEmpty() ? "Не удалось завершить запрос к AI. Проверьте сеть и доступность ChatGPT." : m_stream.error()); return;
+            serviceFailure("responses", reply, 0, "http_or_stream"); return;
         }
-        if (!m_stream.feed(reply->readAll()) || !m_stream.finish()) { fail(m_stream.error()); return; }
+        if (!m_stream.feed(reply->isOpen() ? reply->readAll() : QByteArray()) || !m_stream.finish()) {
+            serviceFailure("responses", reply, 0, "incomplete_stream"); return;
+        }
         const auto text = m_stream.text(); const int generation = m_generation;
         m_packet = {}; m_stream = AiResponseStream();
         acceptResponse(text, generation);
@@ -113,4 +130,25 @@ bool AiChat::acceptResponse(const QString &text, int baseGeneration) {
     emit changed();
     if (m_document->hasPreview()) emit proposalReady();
     return true;
+}
+
+void AiChat::serviceFailure(const QString &stage, QNetworkReply *reply, qint64 bytes, const QString &reason) {
+    const int http = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    const int network = int(reply->error());
+    // Fixed stage/reason enums and numeric metadata only: never log bodies, headers, URLs, tokens or prompts.
+    m_diagnostics = QString("AI stage=%1 http=%2 network=%3 bytes=%4 reason=%5")
+        .arg(stage).arg(http).arg(network).arg(bytes).arg(reason);
+    qInfo().noquote() << m_diagnostics;
+    QString message;
+    if (http == 401) message = "ChatGPT отклонил сеанс. Выйдите и войдите снова.";
+    else if (http == 403) message = "ChatGPT не разрешил доступ к AI. Проверьте разрешение использовать ваш тариф в настройках ChatGPT.";
+    else if (http == 429) message = "Достигнут лимит ChatGPT. Попробуйте позже.";
+    else if (http >= 500) message = "Сервис ChatGPT временно недоступен. Попробуйте позже.";
+    else if (http >= 300 && http < 400) message = "Адрес сервиса ChatGPT изменился. Требуется обновление подключения.";
+    else if (reason == "catalog_too_large") message = "Каталог ChatGPT слишком большой для этой версии приложения.";
+    else if (network != QNetworkReply::NoError) message = "Не удалось связаться с ChatGPT. Проверьте подключение и повторите запрос.";
+    else if (reason == "empty_catalog" || reason == "no_visible_model") message = "ChatGPT не предоставил доступную модель для этого аккаунта.";
+    else if (stage == "models") message = "ChatGPT вернул неподдерживаемый каталог моделей. Подключение требует проверки.";
+    else message = m_stream.error().isEmpty() ? "ChatGPT не завершил ответ. Повторите запрос." : m_stream.error();
+    fail(message);
 }

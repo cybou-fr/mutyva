@@ -24,6 +24,7 @@ public:
 signals:
     void changed();
 private:
+    friend class RuntimeTest;
     void fail(const QString &status);
     void fetch(const QUrl &url, const QByteArray &body, std::function<void(const QJsonObject &)> done, std::function<void()> onError = {});
     void authorize();

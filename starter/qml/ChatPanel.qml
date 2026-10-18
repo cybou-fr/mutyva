@@ -8,6 +8,12 @@ Drawer {
     edge: Qt.RightEdge
     width: Math.min(parent.width, 460)
     height: parent.height
+    property string retryText: {
+        var messages = aiChat.messages
+        if (!messages.length) return ""
+        var last = messages[messages.length - 1]
+        return last.role === "user" && last.unfinished ? last.text : ""
+    }
     modal: true
     leftPadding: 20; rightPadding: 20; topPadding: 20; bottomPadding: 20
     onOpened: composer.forceActiveFocus()
@@ -83,6 +89,12 @@ Drawer {
                 textFormat: Text.PlainText
                 color: brandIdentity.colors.cyan
                 Layout.fillWidth: true; wrapMode: Text.WordWrap
+            }
+            Button {
+                text: "Повторить запрос"
+                visible: panel.retryText.length > 0 && chatSession.connected && !aiChat.busy
+                enabled: !appDocument.hasPreview
+                onClicked: aiChat.send(panel.retryText)
             }
             Button { text: "Посмотреть изменение"; visible: appDocument.hasPreview; onClicked: panel.close() }
             ScrollView {

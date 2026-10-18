@@ -80,6 +80,11 @@ ApplicationWindow {
                 Button { visible: root.editorOpen; text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
                 Button { visible: root.editorOpen; text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }
             }
+            Label {
+                visible: root.editorOpen && aiChat.diagnostics.length > 0
+                text: aiChat.diagnostics; textFormat: Text.PlainText
+                Layout.fillWidth: true; wrapMode: Text.WordWrap; color: root.muted
+            }
             DesignerPanel { visible: root.editorOpen; Layout.fillWidth: true }
             Text {
                 text: root.editorOpen ? (appDocument.lastError.length ? appDocument.lastError : interactionState.lastError.length ? interactionState.lastError : weatherService.status) : (!interactionState.ready ? "Не удалось загрузить ваши данные. Попробуйте ещё раз." : appDocument.lastError.length ? "Не удалось применить изменение. Попробуйте ещё раз." : weatherService.status)

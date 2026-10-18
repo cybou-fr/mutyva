@@ -24,6 +24,10 @@
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QUuid>
+#include <QNetworkReply>
+#include <QTimer>
+#include <QDateTime>
+#include <cstring>
 #ifdef Q_OS_WIN
 #define NOMINMAX
 #include <windows.h>
@@ -31,6 +35,57 @@
 #endif
 
 namespace {
+struct HttpFixture {
+    int status = 200;
+    QByteArray body;
+    QNetworkReply::NetworkError error = QNetworkReply::NoError;
+    QByteArray contentType = "application/json";
+    bool wait = false;
+};
+class FixtureReply : public QNetworkReply {
+public:
+    FixtureReply(const QNetworkRequest &request, const HttpFixture &fixture, QObject *parent)
+        : QNetworkReply(parent), m_body(fixture.body) {
+        setRequest(request); setUrl(request.url());
+        setAttribute(QNetworkRequest::HttpStatusCodeAttribute, fixture.status);
+        setHeader(QNetworkRequest::ContentTypeHeader, QString::fromLatin1(fixture.contentType));
+        open(QIODevice::ReadOnly);
+        if (!fixture.wait) QTimer::singleShot(0, this, [this, fixture] {
+            if (isFinished()) return;
+            if (fixture.error != QNetworkReply::NoError) setError(fixture.error, "Fixture network error");
+            emit readyRead();
+            if (isFinished()) return;
+            setFinished(true); emit finished();
+        });
+    }
+    void abort() override {
+        if (isFinished()) return;
+        setError(OperationCanceledError, "Fixture aborted"); setFinished(true); emit finished();
+    }
+    qint64 bytesAvailable() const override { return m_body.size() - m_offset + QNetworkReply::bytesAvailable(); }
+protected:
+    qint64 readData(char *data, qint64 size) override {
+        const auto count = qMin(size, qint64(m_body.size()) - m_offset);
+        if (count <= 0) return -1;
+        std::memcpy(data, m_body.constData() + m_offset, size_t(count)); m_offset += count;
+        return count;
+    }
+private:
+    QByteArray m_body;
+    qint64 m_offset = 0;
+};
+class FixtureNetwork : public QNetworkAccessManager {
+public:
+    QList<HttpFixture> fixtures;
+    QList<QUrl> requests;
+    QList<QByteArray> posted;
+protected:
+    QNetworkReply *createRequest(Operation operation, const QNetworkRequest &request, QIODevice *data) override {
+        Q_UNUSED(operation);
+        requests.append(request.url()); posted.append(data ? data->readAll() : QByteArray());
+        return new FixtureReply(request, fixtures.isEmpty() ? HttpFixture{500, {}} : fixtures.takeFirst(), this);
+    }
+};
 QByteArray sse(const QJsonObject &event) {
     return "data: " + QJsonDocument(event).toJson(QJsonDocument::Compact) + "\n\n";
 }
@@ -107,6 +162,49 @@ bool dataSql(const QString &path, const QString &sql) {
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void aiCatalogTransport() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        ChatSession session;
+        session.m_access = "fixture-private-token";
+        session.m_expires = QDateTime::currentSecsSinceEpoch() + 3600;
+        FixtureNetwork network;
+        AiChat chat(&document, &session, nullptr, &network);
+        const auto model = QJsonDocument(QJsonObject{{"models", QJsonArray{QJsonObject{{"slug", "test-model"}, {"visibility", "list"}}}},
+            {"padding", QString(600 * 1024, 'x')}}).toJson(QJsonDocument::Compact);
+        QVERIFY(model.size() > 512 * 1024);
+        const auto fixture = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json"));
+        network.fixtures = {HttpFixture{200, model}, HttpFixture{200, sse(completed(json(fixture))), QNetworkReply::NoError, "text/event-stream"}};
+        QVERIFY(chat.send("Добавь влажность"));
+        QTRY_VERIFY(!chat.busy());
+        QVERIFY(document.hasPreview()); QCOMPARE(network.requests.size(), 2);
+        QCOMPARE(network.requests.last().path(), QString("/v1/responses"));
+        const auto sent = QJsonDocument::fromJson(network.posted.last()).object();
+        QCOMPARE(sent.value("model").toString(), QString("test-model"));
+        QCOMPARE(sent.value("store").toBool(true), false); QCOMPARE(sent.value("stream").toBool(), true);
+        QCOMPARE(document.generation(), 1);
+        document.cancelPreview();
+        network.fixtures = {HttpFixture{401, "{\"error\":\"fixture-private-token\"}", QNetworkReply::AuthenticationRequiredError}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy());
+        QVERIFY(chat.status().contains("войдите снова")); QVERIFY(chat.diagnostics().contains("http=401"));
+        QVERIFY(!chat.diagnostics().contains("fixture-private-token")); QVERIFY(!chat.status().contains("fixture-private-token"));
+        QCOMPARE(network.requests.size(), 3); QVERIFY(!document.hasPreview());
+        network.fixtures = {HttpFixture{200, "not json"}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.diagnostics().contains("reason=invalid_json"));
+        network.fixtures = {HttpFixture{200, "{\"data\":[]}"}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.diagnostics().contains("api_catalog_instead_of_chatgpt"));
+        network.fixtures = {HttpFixture{200, "{\"models\":[]}"}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.diagnostics().contains("reason=empty_catalog"));
+        network.fixtures = {HttpFixture{200, QByteArray(4 * 1024 * 1024 + 1, 'x')}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.diagnostics().contains("reason=catalog_too_large"));
+        network.fixtures = {HttpFixture{429, "{}", QNetworkReply::UnknownContentError}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.status().contains("лимит"));
+        network.fixtures = {HttpFixture{0, {}, QNetworkReply::HostNotFoundError}};
+        QVERIFY(chat.send("Повтор")); QTRY_VERIFY(!chat.busy()); QVERIFY(chat.status().contains("подключение"));
+        network.fixtures = {HttpFixture{200, {}, QNetworkReply::NoError, {}, true}};
+        QVERIFY(chat.send("Отмена")); QVERIFY(chat.busy()); chat.cancel(); QVERIFY(!chat.busy());
+        QVERIFY(chat.messages().last().toMap().value("unfinished").toBool());
+    }
     void siwcCallbackAndPkce() {
         QCOMPARE(SiwcProtocol::challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), QString("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"));
         const auto secret = SiwcProtocol::randomSecret();

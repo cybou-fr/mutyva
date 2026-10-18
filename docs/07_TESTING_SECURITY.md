@@ -62,3 +62,5 @@ Qt licensing must be reviewed for chosen Qt modules and distribution model. Open
 ## First Windows AI integration
 
 See [15_AI_CONNECTION.md](15_AI_CONNECTION.md). Offline tests cover CNG RSA signature verification and JWT claim failures, PKCE/callback validation, chunked SSE completion/errors/limits and chat proposal-to-preview behavior. Live browser auth, token exchange, model access, inference and revocation are still unverified. Tokens and chat are memory-only; persistence/refresh/multiple accounts require further implementation.
+
+Model discovery also has an injectable offline network test covering a 600 KiB catalog through Responses and preview, 401/429/network failures, malformed/empty/unexpected catalogs, the 4 MiB bound and cancellation. Diagnostic output contains only fixed stage/reason enums and numeric metadata; never server bodies or credentials.
