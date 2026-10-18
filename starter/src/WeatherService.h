@@ -5,8 +5,11 @@
 #include <QVariantList>
 #include <functional>
 
+class AppDocument;
+
 class WeatherService : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool hasCurrent READ hasCurrent NOTIFY changed)
     Q_PROPERTY(QString city READ city NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(double temperature READ temperature NOTIFY changed)
@@ -15,7 +18,9 @@ class WeatherService : public QObject {
     Q_PROPERTY(int aqi READ aqi NOTIFY changed)
     Q_PROPERTY(QVariantList daily READ daily NOTIFY changed)
 public:
-    explicit WeatherService(QObject *parent = nullptr);
+    explicit WeatherService(QObject *parent = nullptr, QNetworkAccessManager *network = nullptr);
+    void followDocument(AppDocument *document);
+    bool hasCurrent() const { return m_hasCurrent; }
     QString city() const { return m_city; }
     QString status() const { return m_status; }
     double temperature() const { return m_temp; }
@@ -30,7 +35,12 @@ private:
     void getJson(const QUrl &url, std::function<void(const QJsonObject &)> onSuccess);
     void loadWeather(double lat, double lon);
     void loadAir(double lat, double lon);
-    QNetworkAccessManager m_network;
+    QNetworkAccessManager m_ownedNetwork;
+    QNetworkAccessManager *m_network;
+    QMetaObject::Connection m_documentConnection;
+    QString m_configuredCity;
+    quint64 m_lookupRevision = 0;
+    bool m_hasCurrent = false;
     QString m_city = "—";
     QString m_status = "Ожидание данных";
     double m_temp = 0.0;

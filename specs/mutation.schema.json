@@ -83,7 +83,8 @@
                   "value",
                   "placeholder",
                   "items",
-                  "action"
+                  "action",
+                  "defaultCity"
                 ]
               },
               "value": {}

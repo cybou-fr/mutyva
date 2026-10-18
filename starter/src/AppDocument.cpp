@@ -329,3 +329,12 @@ bool AppDocument::previewDesignerResponse(const QString &json) {
     emit designerChanged();
     return true;
 }
+
+QString AppDocument::defaultCity() const {
+    for (const auto &entry : m_document.value("widgets").toArray()) {
+        const auto widget = entry.toObject();
+        if (widget.value("kind") == "city-search" && widget.contains("defaultCity"))
+            return widget.value("defaultCity").toString().trimmed();
+    }
+    return "Paris";
+}

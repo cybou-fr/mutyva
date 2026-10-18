@@ -28,6 +28,7 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <QDateTime>
+#include <QUrlQuery>
 #include <cstring>
 #ifdef Q_OS_WIN
 #define NOMINMAX
@@ -42,6 +43,7 @@ struct HttpFixture {
     QNetworkReply::NetworkError error = QNetworkReply::NoError;
     QByteArray contentType = "application/json";
     bool wait = false;
+    int delayMs = 0;
 };
 class FixtureReply : public QNetworkReply {
 public:
@@ -51,7 +53,7 @@ public:
         setAttribute(QNetworkRequest::HttpStatusCodeAttribute, fixture.status);
         if (!fixture.contentType.isEmpty()) setHeader(QNetworkRequest::ContentTypeHeader, QString::fromLatin1(fixture.contentType));
         open(QIODevice::ReadOnly);
-        if (!fixture.wait) QTimer::singleShot(0, this, [this, fixture] {
+        if (!fixture.wait) QTimer::singleShot(fixture.delayMs, this, [this, fixture] {
             if (isFinished()) return;
             if (fixture.error != QNetworkReply::NoError) setError(fixture.error, "Fixture network error");
             emit readyRead();
@@ -163,6 +165,70 @@ bool dataSql(const QString &path, const QString &sql) {
 class RuntimeTest : public QObject {
     Q_OBJECT
 private slots:
+    void defaultCityConfiguration() {
+        QTemporaryDir folder;
+        AppDocument doc(nullptr, folder.path());
+        QCOMPARE(doc.defaultCity(), QString("Paris"));
+        QVERIFY(doc.prepareDesignerContext("Погода в Poitiers по умолчанию"));
+        QVERIFY(doc.designerContextJson().contains("defaultCity"));
+        const auto reply = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/default-city-poitiers-response.json"));
+        QVERIFY(doc.previewDesignerResponse(json(reply)));
+        QCOMPARE(doc.defaultCity(), QString("Paris"));
+        QCOMPARE(doc.previewWidgets().first().toMap().value("defaultCity").toString(), QString("Poitiers"));
+        doc.cancelPreview(); QCOMPARE(doc.defaultCity(), QString("Paris"));
+        QVERIFY(doc.updateWidgetProperty("citySearch", "defaultCity", "Poitiers"));
+        QVERIFY(doc.applyPreview()); QCOMPARE(doc.defaultCity(), QString("Poitiers"));
+        AppDocument restored(nullptr, folder.path()); QCOMPARE(restored.defaultCity(), QString("Poitiers"));
+        QVERIFY(restored.rollback()); QCOMPARE(restored.defaultCity(), QString("Poitiers"));
+        QVERIFY(restored.applyPreview()); QCOMPARE(restored.defaultCity(), QString("Paris"));
+        QVERIFY(!restored.updateWidgetProperty("currentWeather", "defaultCity", "Poitiers"));
+        QVERIFY(!restored.updateWidgetProperty("citySearch", "defaultCity", " "));
+        QVERIFY(!restored.updateWidgetProperty("citySearch", "defaultCity", QString(101, 'x')));
+        auto conflicting = baseline(); auto widgets = conflicting.value("widgets").toArray();
+        auto first = widgets[0].toObject(); first["defaultCity"] = "Paris"; widgets[0] = first;
+        widgets.append(QJsonObject{{"id", "secondSearch"}, {"kind", "city-search"}, {"defaultCity", "Poitiers"}});
+        conflicting["widgets"] = widgets;
+        QString error; QVERIFY(!DeclarativeRuntime::validateDocument(conflicting, error));
+    }
+    void weatherFollowsCommittedCity() {
+        QTemporaryDir folder;
+        AppDocument doc(nullptr, folder.path());
+        FixtureNetwork network;
+        for (int i = 0; i < 5; ++i) network.fixtures.append(HttpFixture{200, "{\"results\":[]}"});
+        WeatherService weather(nullptr, &network);
+        weather.followDocument(&doc);
+        QTRY_COMPARE(network.requests.size(), 1);
+        QCOMPARE(QUrlQuery(network.requests.last()).queryItemValue("name"), QString("Paris"));
+        QVERIFY(doc.updateWidgetProperty("citySearch", "defaultCity", "Poitiers"));
+        QCOMPARE(network.requests.size(), 1); doc.cancelPreview(); QCOMPARE(network.requests.size(), 1);
+        QVERIFY(doc.updateWidgetProperty("citySearch", "defaultCity", "Poitiers")); QVERIFY(doc.applyPreview());
+        QTRY_COMPARE(network.requests.size(), 2);
+        QCOMPARE(QUrlQuery(network.requests.last()).queryItemValue("name"), QString("Poitiers"));
+        weather.lookup("Lyon"); QTRY_COMPARE(network.requests.size(), 3);
+        QVERIFY(doc.prepareDesignerContext("Добавь влажность")); QCOMPARE(network.requests.size(), 3);
+        QVERIFY(doc.renameWidget("forecast", "Мой прогноз")); QVERIFY(doc.applyPreview()); QCOMPARE(network.requests.size(), 3);
+        QVERIFY(!weather.hasCurrent());
+        AppDocument restarted(nullptr, folder.path());
+        FixtureNetwork restartedNetwork; restartedNetwork.fixtures = {HttpFixture{200, "{\"results\":[]}"}};
+        WeatherService restartedWeather(nullptr, &restartedNetwork); restartedWeather.followDocument(&restarted);
+        QCOMPARE(QUrlQuery(restartedNetwork.requests.first()).queryItemValue("name"), QString("Poitiers"));
+    }
+    void weatherIgnoresPreviousCityResponse() {
+        FixtureNetwork network;
+        network.fixtures = {
+            HttpFixture{200, "{\"results\":[{\"name\":\"Paris\",\"country\":\"France\",\"latitude\":48.85,\"longitude\":2.35}]}", QNetworkReply::NoError, "application/json", false, 60},
+            HttpFixture{200, "{\"results\":[{\"name\":\"Poitiers\",\"country\":\"France\",\"latitude\":46.58,\"longitude\":0.34}]}"},
+            HttpFixture{200, "{\"current\":{\"temperature_2m\":20.5,\"relative_humidity_2m\":55,\"wind_speed_10m\":3},\"daily\":{}}"},
+            HttpFixture{200, "{\"current\":{\"european_aqi\":12}}"}};
+        WeatherService weather(nullptr, &network);
+        weather.lookup("Paris"); weather.lookup("Poitiers");
+        QTRY_VERIFY(weather.hasCurrent()); QCOMPARE(weather.city(), QString("Poitiers, France"));
+        QCOMPARE(weather.temperature(), 20.5); QCOMPARE(weather.humidity(), 55);
+        QTest::qWait(100); QCOMPARE(weather.city(), QString("Poitiers, France"));
+        QCOMPARE(network.requests.size(), 4); QCOMPARE(weather.temperature(), 20.5);
+        network.fixtures = {HttpFixture{200, "{\"results\":[]}"}};
+        weather.lookup("Other city"); QVERIFY(!weather.hasCurrent());
+    }
     void liveAiHarnessRunsAutomatically() {
         QTemporaryDir folder;
         ChatSession session;
@@ -172,8 +238,10 @@ private slots:
         const auto catalog = QByteArray("{\"models\":[{\"slug\":\"test-model\",\"visibility\":\"list\"}]}");
         const auto question = json(QJsonObject{{"status", "clarification"}, {"message", "Какой виджет добавить?"}});
         const auto mutation = json(read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/add-humidity-response.json")));
+        const auto cityMutation = json(read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/designer/default-city-poitiers-response.json")));
         network.fixtures = {HttpFixture{200, catalog}, HttpFixture{200, sse(completed(question)), QNetworkReply::NoError, "application/json"},
-            HttpFixture{200, catalog}, HttpFixture{200, sse(completed(mutation)), QNetworkReply::NoError, "application/json"}};
+            HttpFixture{200, catalog}, HttpFixture{200, sse(completed(mutation)), QNetworkReply::NoError, "application/json"},
+            HttpFixture{200, catalog}, HttpFixture{200, sse(completed(cityMutation)), QNetworkReply::NoError, "application/json"}};
         const auto path = folder.filePath("report.json");
         LiveAiCheck check(&session, path, nullptr, &network);
         QSignalSpy done(&check, &LiveAiCheck::completed);
@@ -183,9 +251,9 @@ private slots:
         QVERIFY(check.finished());
         const auto report = read(path);
         QCOMPARE(report.value("status").toString(), QString("passed"));
-        QCOMPARE(report.value("cases").toArray().size(), 2);
-        QCOMPARE(network.requests.size(), 4);
-        QCOMPARE(report.value("cases").toArray().last().toObject().value("reason").toString(), QString("preview_apply_restart_verified"));
+        QCOMPARE(report.value("cases").toArray().size(), 3);
+        QCOMPARE(network.requests.size(), 6);
+        QCOMPARE(report.value("cases").toArray().last().toObject().value("reason").toString(), QString("default_city_restart_verified"));
         QVERIFY(!bytes(path).contains("fixture-private-token"));
         check.cancel(); QCOMPARE(done.count(), 1);
     }
@@ -1180,6 +1248,17 @@ private slots:
         QVERIFY(window);
         auto *repeater = window->findChild<QObject *>("widgetRepeater");
         QVERIFY(repeater);
+        QTRY_VERIFY(findItem(window->contentItem(), "citySearchInput"));
+        QCOMPARE(findItem(window->contentItem(), "citySearchInput")->property("text").toString(), QString("Paris"));
+        QVERIFY(document.updateWidgetProperty("citySearch", "defaultCity", "Poitiers"));
+        QTRY_COMPARE(findItem(window->contentItem(), "citySearchInput")->property("text").toString(), QString("Poitiers"));
+        QVERIFY(!findItem(window->contentItem(), "citySearchInput")->property("enabled").toBool());
+        QCOMPARE(document.defaultCity(), QString("Paris"));
+        document.cancelPreview();
+        QTRY_COMPARE(findItem(window->contentItem(), "citySearchInput")->property("text").toString(), QString("Paris"));
+        QVERIFY(document.updateWidgetProperty("citySearch", "defaultCity", "Poitiers")); QVERIFY(document.applyPreview());
+        QTRY_VERIFY(findItem(window->contentItem(), "citySearchInput")->property("enabled").toBool());
+        QCOMPARE(document.defaultCity(), QString("Poitiers"));
         auto *prepareContext = window->findChild<QObject *>("prepareDesignerContext");
         QVERIFY(prepareContext);
         QVERIFY(QMetaObject::invokeMethod(prepareContext, "clicked"));

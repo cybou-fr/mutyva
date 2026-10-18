@@ -7,6 +7,7 @@
 class AppDocument : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList widgets READ widgets NOTIFY documentChanged)
+    Q_PROPERTY(QString defaultCity READ defaultCity NOTIFY documentChanged)
     Q_PROPERTY(int generation READ generation NOTIFY documentChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY documentChanged)
     Q_PROPERTY(QVariantList catalog READ catalog CONSTANT)
@@ -21,6 +22,7 @@ public:
     QVariantList widgets() const;
     QVariantList catalog() const;
     QString documentJson() const;
+    QString defaultCity() const;
     QString userDataPath() const { return m_folder + "/data/user-data.sqlite"; }
     bool hasPreview() const { return !m_candidate.isEmpty(); }
     QVariantList previewWidgets() const;

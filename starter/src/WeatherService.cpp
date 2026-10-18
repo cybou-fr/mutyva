@@ -1,4 +1,5 @@
 #include "WeatherService.h"
+#include "AppDocument.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QVariantMap>
@@ -7,17 +8,32 @@
 #include <QUrlQuery>
 #include <QDebug>
 
-WeatherService::WeatherService(QObject *parent) : QObject(parent) {}
+WeatherService::WeatherService(QObject *parent, QNetworkAccessManager *network)
+    : QObject(parent), m_network(network ? network : &m_ownedNetwork) {}
+
+void WeatherService::followDocument(AppDocument *document) {
+    QObject::disconnect(m_documentConnection);
+    auto refresh = [this, document] {
+        const auto city = document->defaultCity();
+        if (city == m_configuredCity) return;
+        m_configuredCity = city;
+        lookup(city);
+    };
+    m_documentConnection = connect(document, &AppDocument::documentChanged, this, refresh);
+    refresh();
+}
 
 void WeatherService::getJson(const QUrl &url, std::function<void(const QJsonObject &)> onSuccess) {
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::UserAgentHeader, "MUTYVA-CityPulse-Demo/0.1");
-    QNetworkReply *reply = m_network.get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, onSuccess = std::move(onSuccess)]() {
+    QNetworkReply *reply = m_network->get(request);
+    const auto revision = m_lookupRevision;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, revision, onSuccess = std::move(onSuccess)]() {
+        reply->deleteLater();
+        if (revision != m_lookupRevision) return;
         const auto error = reply->error();
         const QString errorText = reply->errorString();
         const QByteArray bytes = reply->readAll();
-        reply->deleteLater();
         if (error != QNetworkReply::NoError) {
             m_status = "Ошибка сети: " + errorText;
             emit changed();
@@ -35,8 +51,10 @@ void WeatherService::getJson(const QUrl &url, std::function<void(const QJsonObje
 }
 
 void WeatherService::lookup(const QString &city) {
+    ++m_lookupRevision;
     const QString clean = city.trimmed().left(100);
     if (clean.size() < 2) { m_status = "Введите минимум 2 символа"; emit changed(); return; }
+    m_city = "—"; m_hasCurrent = false; m_daily.clear(); m_aqi = -1;
     m_status = "Поиск города..."; emit changed();
     QUrl url("https://geocoding-api.open-meteo.com/v1/search");
     QUrlQuery q;
@@ -70,6 +88,10 @@ void WeatherService::loadWeather(double lat, double lon) {
     url.setQuery(q);
     getJson(url, [this](const QJsonObject &obj) {
         const QJsonObject current = obj.value("current").toObject();
+        if (!current.value("temperature_2m").isDouble() || !current.value("relative_humidity_2m").isDouble() || !current.value("wind_speed_10m").isDouble()) {
+            m_status = "Не удалось получить текущую погоду"; emit changed(); return;
+        }
+        m_hasCurrent = true;
         m_temp = current.value("temperature_2m").toDouble();
         m_humidity = current.value("relative_humidity_2m").toInt();
         m_wind = current.value("wind_speed_10m").toDouble();

@@ -12,10 +12,11 @@
 #include <QDebug>
 
 namespace {
-const QStringList Names{"conversation_reply", "mutation_preview_apply_restart"};
+const QStringList Names{"conversation_reply", "mutation_preview_apply_restart", "default_city_apply_restart"};
 const QStringList Requests{
     "Не меняй интерфейс. Задай один короткий уточняющий вопрос: какой виджет погоды пользователь хочет добавить. Верни clarification.",
-    "Добавь одну отдельную карточку влажности humidity-card сразу после forecast. Используй существующий источник weather. Сохрани все существующие виджеты, их свойства и порядок. Не добавляй другие изменения."
+    "Добавь одну отдельную карточку влажности humidity-card сразу после forecast. Используй существующий источник weather. Сохрани все существующие виджеты, их свойства и порядок. Не добавляй другие изменения.",
+    "Показывай по умолчанию погоду в Poitiers. Сохрани остальной интерфейс без изменений."
 };
 }
 LiveAiCheck::LiveAiCheck(ChatSession *session, const QString &reportPath, QObject *parent, QNetworkAccessManager *network)
@@ -85,23 +86,37 @@ void LiveAiCheck::checkReply() {
         }
         const auto original = m_document->widgets();
         const auto candidate = m_document->previewWidgets();
-        bool preserved = candidate.size() == original.size() + 1;
-        for (const auto &widget : original) preserved = preserved && candidate.contains(widget);
-        int forecast = -1, humidity = -1;
-        for (int i = 0; i < candidate.size(); ++i) {
-            const auto widget = candidate[i].toMap();
-            if (widget.value("id") == "forecast") forecast = i;
-            if (widget.value("kind") == "humidity-card") humidity = i;
+        bool preserved = false;
+        if (m_case == 1) {
+            preserved = candidate.size() == original.size() + 1;
+            for (const auto &widget : original) preserved = preserved && candidate.contains(widget);
+            int forecast = -1, humidity = -1;
+            for (int i = 0; i < candidate.size(); ++i) {
+                const auto widget = candidate[i].toMap();
+                if (widget.value("id") == "forecast") forecast = i;
+                if (widget.value("kind") == "humidity-card") humidity = i;
+            }
+            preserved = preserved && forecast >= 0 && humidity == forecast + 1;
+        } else {
+            preserved = candidate.size() == original.size() && m_document->defaultCity() == "Paris";
+            for (int i = 0; preserved && i < candidate.size(); ++i) {
+                auto widget = candidate[i].toMap();
+                if (widget.value("id") == "citySearch") {
+                    preserved = widget.take("defaultCity").toString().trimmed().compare("Poitiers", Qt::CaseInsensitive) == 0;
+                }
+                preserved = preserved && widget == original[i].toMap();
+            }
         }
-        if (!preserved || forecast < 0 || humidity != forecast + 1) {
+        if (!preserved) {
             record(Names[m_case], false, "unexpected_candidate", reply); finish("failed", "unexpected_candidate", 1); return;
         }
         if (!m_document->applyPreview()) {
             record(Names[m_case], false, "temporary_commit_failed", reply); finish("failed", "temporary_commit_failed", 1); return;
         }
         AppDocument restored(nullptr, m_store.filePath(QString::number(m_case)));
-        const bool persisted = restored.generation() == 2 && restored.documentJson() == m_document->documentJson();
-        record(Names[m_case], persisted, persisted ? "preview_apply_restart_verified" : "restart_mismatch", reply);
+        const bool persisted = restored.generation() == 2 && restored.documentJson() == m_document->documentJson() &&
+            (m_case != 2 || restored.defaultCity().compare("Poitiers", Qt::CaseInsensitive) == 0);
+        record(Names[m_case], persisted, persisted ? (m_case == 2 ? "default_city_restart_verified" : "preview_apply_restart_verified") : "restart_mismatch", reply);
         if (!persisted) { finish("failed", "restart_mismatch", 1); return; }
     }
     QTimer::singleShot(0, this, &LiveAiCheck::nextCase);

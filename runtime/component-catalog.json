@@ -5,7 +5,7 @@
     {
       "kind": "city-search",
       "title": "Поиск города",
-      "description": "Ввод названия города и поиск через Open-Meteo.",
+      "description": "Поиск города через Open-Meteo. defaultCity задаёт общий город при запуске и после применения изменения; без свойства используется Paris. Несколько поисков разделяют общий город, заданные defaultCity должны совпадать.",
       "source": "geocoding",
       "bindings": [
         {
@@ -21,7 +21,8 @@
         "network:*.open-meteo.com"
       ],
       "propertyNames": [
-        "title"
+        "title",
+        "defaultCity"
       ]
     },
     {

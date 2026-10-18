@@ -36,6 +36,6 @@ int main(int argc, char *argv[]) {
     engine.rootContext()->setContextProperty("aiChat", &aiChat);
     engine.loadFromModule("Mutyva.Demo", "Main");
     if (engine.rootObjects().isEmpty()) return -1;
-    weather.lookup("Paris");
+    weather.followDocument(&document);
     return app.exec();
 }

@@ -1,0 +1,34 @@
+{
+    "cases": [
+        {
+            "diagnostics": "",
+            "elapsedMs": 5309,
+            "name": "conversation_reply",
+            "passed": true,
+            "reason": "validated_reply_without_mutation",
+            "reply": "Какой виджет погоды вы хотите добавить?"
+        },
+        {
+            "diagnostics": "",
+            "elapsedMs": 5194,
+            "name": "mutation_preview_apply_restart",
+            "passed": true,
+            "reason": "preview_apply_restart_verified",
+            "reply": "Предлагаю добавить одну карточку влажности сразу после forecast. Она использует существующий источник weather; остальные виджеты, их свойства и взаимный порядок останутся без изменений."
+        },
+        {
+            "diagnostics": "",
+            "elapsedMs": 6235,
+            "name": "default_city_apply_restart",
+            "passed": true,
+            "reason": "default_city_restart_verified",
+            "reply": "Предлагаю установить Poitiers городом по умолчанию. Остальной интерфейс останется без изменений."
+        }
+    ],
+    "exitCode": 0,
+    "finishedAt": "2026-10-18T22:50:14Z",
+    "isolatedApplication": true,
+    "reason": "all_checks_passed",
+    "status": "passed",
+    "updatedAt": "2026-10-18T22:50:14Z"
+}

@@ -68,3 +68,5 @@ Model discovery also has an injectable offline network test covering a 600 KiB c
 ## Human-authenticated live suite
 
 See [16_LIVE_AI_TESTS.md](16_LIVE_AI_TESTS.md). The standalone live-ai-tests executable opens real browser sign-in, then automatically exercises a nonmutating reply and an AI mutation through temporary preview/apply/restart. Its atomic JSON report distinguishes waiting/running from passed/failed/cancelled. One sign-in covers the suite; no screenshots or manual prompts are needed. The user's live generations/data are not used. Offline harness tests remain separate from evidence of a real live pass.
+
+Default-city coverage verifies validation/catalog/context, preview cancellation, apply/restart/rollback, QML preview input, no candidate-city HTTP requests before Apply, preservation of manual search on unrelated document changes and late-response isolation. The extended real-account suite passed the Poitiers mutation/apply/restart scenario; see [17_DEFAULT_CITY.md](17_DEFAULT_CITY.md).

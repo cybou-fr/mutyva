@@ -9,7 +9,7 @@ ApplicationWindow {
         anchors.fill: parent; anchors.margins: 24; spacing: 16
         Label { text: "Проверка реального подключения"; color: "white"; font.pixelSize: 22; font.bold: true; Layout.fillWidth: true; wrapMode: Text.WordWrap }
         Label {
-            text: "Завершите вход в открытом браузере. Дальше тест сам отправит два запроса и проверит ответы, предпросмотр и восстановление. Ваше приложение и заметки не изменятся."
+            text: "Завершите вход в открытом браузере. Дальше тест сам отправит три запроса и проверит ответы, предпросмотр и восстановление. Ваше приложение и заметки не изменятся."
             color: "#A3B0C8"; Layout.fillWidth: true; wrapMode: Text.WordWrap
         }
         Label { text: chatSession.status; color: "#00D4FF"; Layout.fillWidth: true; wrapMode: Text.WordWrap }

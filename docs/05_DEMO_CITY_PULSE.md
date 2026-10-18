@@ -73,3 +73,7 @@ Bundle a *clearly labeled sample snapshot* for screenshots or offline demonstrat
 ## Optional extension AFTER first milestone
 
 Add a second independent provider for geographic country facts or use local user notes SQLite. This demonstrates genuine multi-source composition, but must not block the original City Pulse AI-mutation demo.
+
+## Saved default city
+
+The starter now supports city-search.defaultCity via the same validated mutation/preview path. Legacy documents without it use Paris. Apply changes the shared weather startup city; restart restores it. Manual search is temporary, and preview does not request candidate-city weather. See [17_DEFAULT_CITY.md](17_DEFAULT_CITY.md).

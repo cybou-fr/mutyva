@@ -1,0 +1,17 @@
+{
+  "status": "proposal",
+  "message": "Предлагаю показывать погоду в Poitiers по умолчанию.",
+  "mutation": {
+    "schemaVersion": 2,
+    "appId": "official.city-pulse",
+    "intent": "Погода в Poitiers по умолчанию",
+    "operations": [
+      {
+        "op": "updateProperty",
+        "id": "citySearch",
+        "path": "defaultCity",
+        "value": "Poitiers"
+      }
+    ]
+  }
+}

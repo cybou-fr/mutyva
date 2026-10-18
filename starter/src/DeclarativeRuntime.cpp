@@ -148,9 +148,17 @@ bool DeclarativeRuntime::validateDocument(const QJsonObject &document, QString &
     QSet<QString> ids;
     QMap<QString, QJsonObject> byId;
     QSet<QString> containers;
+    QString defaultCity;
     for (const auto &entry : document.value("widgets").toArray()) {
         const auto widget = entry.toObject();
         const auto id = widget.value("id").toString();
+        if (widget.value("kind") == "city-search" && widget.contains("defaultCity")) {
+            const auto city = widget.value("defaultCity").toString().trimmed();
+            if (city.size() < 2) return fail(error, "$.widgets." + id, "Нужен город не короче двух символов");
+            if (!defaultCity.isEmpty() && defaultCity.compare(city, Qt::CaseInsensitive) != 0)
+                return fail(error, "$.widgets." + id, "Все поиски города должны использовать один defaultCity");
+            defaultCity = city;
+        }
         if (ids.contains(id)) return fail(error, "$.widgets", "Повтор ID " + id);
         ids.insert(id);
         byId.insert(id, widget);

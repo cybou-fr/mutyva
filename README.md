@@ -41,6 +41,10 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
+## Default weather city
+
+Ask **«Показывай по умолчанию погоду в Poitiers»** in chat and apply the preview. The saved city loads on restart. Manual city searches remain temporary. See [docs/17_DEFAULT_CITY.md](docs/17_DEFAULT_CITY.md).
+
 ## Main interface
 
 The main screen exposes **Чат с AI** and the running application. Open the chat, choose **Continue with ChatGPT**, finish browser sign-in and send a request. The host prepares context internally and shows a preview for confirmation. The first Windows OAuth/Responses integration is implemented; a real-account Windows live suite passed on 2026-10-19 (reply plus isolated AI mutation/apply/restart). Tokens and chat are memory-only for now; restart requires sign-in again. Technical editors, context inspection and demo actions are available only in developer mode (**Ctrl+Shift+D**); the instructions below use that mode.
@@ -59,7 +63,7 @@ The main screen exposes **Чат с AI** and the running application. Open the c
 
 ## Build and tests
 
-**Real ChatGPT test:** run `powershell -ExecutionPolicy Bypass -File tools/run_live_ai_test.ps1`, complete browser sign-in once, and let the test send requests and verify replies, preview, an isolated commit and restart automatically. Results: `build-msvc/live-ai-report.json`. See [docs/16_LIVE_AI_TESTS.md](docs/16_LIVE_AI_TESTS.md). This is opt-in and uses account plan limits; normal CTest remains offline.
+**Real ChatGPT test:** run `powershell -ExecutionPolicy Bypass -File tools/run_live_ai_test.ps1`, complete browser sign-in once, and let the test send requests and verify replies, a humidity card, the default weather city, isolated commits and restart automatically. Results: `build-msvc/live-ai-report.json`. See [docs/16_LIVE_AI_TESTS.md](docs/16_LIVE_AI_TESTS.md). This is opt-in and uses account plan limits; normal CTest remains offline.
 
 **Branding:** supplied artwork is integrated into README, application resources, first-run welcome/About and desktop/Android packaging. See [branding/README.md](branding/README.md) for exports, reproduction and platform verification notes. Runtime display branding preserves the previous data-storage namespace.
 
