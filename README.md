@@ -4,6 +4,8 @@
 
 # MUTYVA — One App. Infinite Forms.
 
+**🇫🇷 [Étude de cas — Architecture, IA et MVP](docs/CASE_STUDY_FR.md)** — Présentation technique du runtime déclaratif et des mutations contrôlées.
+
 **Одно приложение. Любая форма.** Локальная среда приложений на Qt с общей палитрой, предпросмотром изменений и историей поколений.
 
 **Status:** declarative Qt editor with validated local mutations and preview, 2026-10-18. **Language:** Russian.
