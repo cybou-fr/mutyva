@@ -27,7 +27,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/03_CHATGPT_AUTH.md` | Verified Sign in with ChatGPT integration blueprint |
 | `docs/04_DECLARATIVE_RUNTIME.md` | Declarative schema, controlled mutations and history |
 | `docs/05_DEMO_CITY_PULSE.md` | Public APIs, response mapping and demo narrative |
-| `docs/06_IMPLEMENTATION_ROADMAP.md` | Thin vertical slices, tasks and milestones |
+| `docs/06_IMPLEMENTATION_ROADMAP.md` | Current R0–R4 execution queue: Foundation MVP, local data, multi-app, AI app creation, Android/release |
 | `docs/07_TESTING_SECURITY.md` | End-to-end acceptance, threats, offline and error tests |
 | `docs/08_PLATFORMS_RELEASE.md` | Windows, Android, macOS, Linux and iOS strategy |
 | `docs/09_ENGINEERING_DECISIONS.md` | Binding decisions and non-goals |
@@ -42,6 +42,12 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/13_LOCAL_DATA.md` | Persistent app-scoped SQLite data, transactional input/list actions and conflict recovery |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
+
+## Active development roadmap (2026-10-23)
+
+The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authoritative work queue. It keeps the original **Foundation MVP** (City Pulse + safe AI mutation + offline restart) distinct from the next **Useful-app MVP** (ChatGPT creates a local Task Manager with real records and safely evolves its data model). Current priority is **R0-01: verify/fix generation parent-aware rollback across orphan snapshot gaps**, followed by normal-user semantic preview, structured SQLite CRUD, independent local apps and AI app creation. The agent's [handoff](docs/10_AGENT_HANDOFF.md) follows the same ticket IDs.
+
+All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
 
 ## Default weather city
 
