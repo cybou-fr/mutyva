@@ -16,7 +16,7 @@ This is the **actual allowlisted palette shipped by the current source**, not a 
 
 ## Catalog reference
 
-Every entry below includes its concrete declaration example. Screenshots are **not bundled** because a verified Qt renderer is required; `MUTYVA_PALETTE_CAPTURE_DIR` enables the Qt test harness to capture each kind separately on a configured Qt build. Do not represent renders as verified until files are produced by that harness.
+Every entry below includes its concrete declaration example. **Screenshots:** Windows Qt CI runs the real QML renderer for every catalog kind and checks that it produces **21 PNG files**. They are attached to each successful [Windows Qt regression workflow](https://github.com/cybou-fr/mutyva/actions/workflows/windows-qt.yml) as the artifact `mutyva-component-gallery` (90-day retention), with one named `<kind>.png` per entry below. This is a tested artifact output rather than a hand-drawn or synthetic UI mockup. The screenshot-producing workflow is an acceptance gate; consult the **latest successful run** before claiming the captures exist.
 
 ### `city-search` — Поиск города
 
@@ -32,6 +32,8 @@ Every entry below includes its concrete declaration example. Screenshots are **n
   "defaultCity": "Paris"
 }
 ```
+
+**Screenshot file:** `city-search.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент поиск города с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -49,6 +51,8 @@ Every entry below includes its concrete declaration example. Screenshots are **n
 }
 ```
 
+**Screenshot file:** `weather-card.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент текущая погода с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `forecast-list` — Прогноз на 7 дней
@@ -64,6 +68,8 @@ Every entry below includes its concrete declaration example. Screenshots are **n
   "title": "Прогноз на 7 дней"
 }
 ```
+
+**Screenshot file:** `forecast-list.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент прогноз на 7 дней с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -81,6 +87,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `air-card.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент качество воздуха с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `humidity-card` — Влажность воздуха
@@ -96,6 +104,8 @@ European Air Quality Index выбранного города.
   "title": "Влажность воздуха"
 }
 ```
+
+**Screenshot file:** `humidity-card.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент влажность воздуха с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -114,6 +124,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `text.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент текст с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `card` — Карточка
@@ -129,6 +141,8 @@ European Air Quality Index выбранного города.
   "title": "Карточка"
 }
 ```
+
+**Screenshot file:** `card.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент карточка с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -146,6 +160,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `stack.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент колонка с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `row` — Строка
@@ -161,6 +177,8 @@ European Air Quality Index выбранного города.
   "title": "Строка"
 }
 ```
+
+**Screenshot file:** `row.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент строка с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -182,6 +200,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `button.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент кнопка с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `input` — Поле ввода
@@ -200,6 +220,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `input.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент поле ввода с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `list` — Список
@@ -217,6 +239,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `list.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент список с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `record-form` — Форма записей
@@ -233,6 +257,8 @@ European Air Quality Index выбранного города.
   "model": "tasks"
 }
 ```
+
+**Screenshot file:** `record-form.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент форма записей с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -260,6 +286,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `record-list.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент список записей с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `checkbox` — Флажок
@@ -276,6 +304,8 @@ European Air Quality Index выбранного города.
   "value": "false"
 }
 ```
+
+**Screenshot file:** `checkbox.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент флажок с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -298,6 +328,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `select.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент выбор с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `date-picker` — Дата
@@ -314,6 +346,8 @@ European Air Quality Index выбранного города.
   "value": ""
 }
 ```
+
+**Screenshot file:** `date-picker.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент дата с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -332,6 +366,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `dialog.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент диалог с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `tabs` — Вкладки
@@ -347,6 +383,8 @@ European Air Quality Index выбранного города.
   "title": "Мои вкладки"
 }
 ```
+
+**Screenshot file:** `tabs.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент вкладки с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
@@ -365,6 +403,8 @@ European Air Quality Index выбранного города.
 }
 ```
 
+**Screenshot file:** `image.png` in the `mutyva-component-gallery` CI artifact.
+
 **Example AI request:** «Добавь компонент изображение с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 
 ### `icon` — Иконка
@@ -381,6 +421,8 @@ European Air Quality Index выбранного города.
   "icon": "star"
 }
 ```
+
+**Screenshot file:** `icon.png` in the `mutyva-component-gallery` CI artifact.
 
 **Example AI request:** «Добавь компонент иконка с ID exampleWidget, используя только доступные свойства каталога; если нужны зависимости, объясни их».
 

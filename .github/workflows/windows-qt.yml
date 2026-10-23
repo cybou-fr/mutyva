@@ -40,3 +40,25 @@ jobs:
             Get-Content "build-ci/runtime-tests.txt" | Select-Object -Last 450
           }
           exit $code
+
+      - name: Capture 21 palette components
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          $env:QT_QUICK_CONTROLS_STYLE = "Fusion"
+          $env:QT_PLUGIN_PATH = Join-Path $env:QT_ROOT_DIR "plugins"
+          $env:QML_IMPORT_PATH = Join-Path $env:QT_ROOT_DIR "qml"
+          $env:QT_QPA_FONTDIR = Join-Path $env:WINDIR "Fonts"
+          $env:MUTYVA_PALETTE_CAPTURE_DIR = Join-Path $env:GITHUB_WORKSPACE "palette-captures"
+          & ".\\build-ci\\Release\\runtime-tests.exe" paletteCaptureScreenshots -o -,txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $images = @(Get-ChildItem $env:MUTYVA_PALETTE_CAPTURE_DIR -Filter "*.png")
+          if ($images.Count -ne 21) { throw "Expected 21 component PNGs; got $($images.Count)" }
+
+      - name: Publish real Qt screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutyva-component-gallery
+          path: palette-captures/*.png
+          if-no-files-found: error
+          retention-days: 90
