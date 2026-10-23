@@ -2,6 +2,8 @@
 
 **Requirement:** Only **Qt 6.12.x** (not Qt 6.8, 6.11 or 6.13), Windows/MSVC 2022 and C++20 are supported as the Windows acceptance baseline. See the [CMake gate](../CMakeLists.txt) and [architecture quality requirements](23_ARCHITECTURE_ASSESSMENT.md).
 
+**Last observed CI evidence (2026-10-23):** [Windows workflow run 39970106273](https://github.com/cybou-fr/mutyva/actions/runs/39970106273) — the independent **PowerShell AST syntax check passed** on Windows Server 2022; the main Qt 6.12 job **failed at Check Qt Account secrets**, before installation, compilation or CTest. [Static contracts CI](https://github.com/cybou-fr/mutyva/actions/runs/39970106321) is a separate non-native gate. This means **no Qt 6.12 acceptance report exists yet**.
+
 **Status as of 2026-10-23:** historical Qt 6.8 Windows CTest and screenshot gallery passed; the **Qt 6.12** hosted pipeline is blocked during Qt Account credential availability checks. Until the native `QT612_PASS` report and a green Qt 6.12 workflow exist, **R0-02/R0-03 remain IMPLEMENTED-UNVERIFIED**, not fully accepted.
 
 ## Option A — Run the full gate locally without GitHub secrets
