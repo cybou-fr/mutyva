@@ -9,6 +9,7 @@ class AppDocument : public QObject {
     Q_PROPERTY(QVariantList widgets READ widgets NOTIFY documentChanged)
     Q_PROPERTY(QString defaultCity READ defaultCity NOTIFY documentChanged)
     Q_PROPERTY(int generation READ generation NOTIFY documentChanged)
+    Q_PROPERTY(bool storageReady READ storageReady NOTIFY documentChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY documentChanged)
     Q_PROPERTY(QVariantList catalog READ catalog CONSTANT)
     Q_PROPERTY(QString documentJson READ documentJson NOTIFY documentChanged)
@@ -30,6 +31,7 @@ public:
     QString designerContextJson() const { return m_designerContext; }
     QString designerMessage() const { return m_designerMessage; }
     int generation() const { return m_generation; }
+    bool storageReady() const { return m_storageReady; }
     QString lastError() const { return m_error; }
     Q_INVOKABLE bool addHumidityCard();
     Q_INVOKABLE bool rollback();

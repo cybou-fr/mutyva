@@ -24,6 +24,10 @@ bool InteractionState::reload() {
     m_ready = false;
     m_store.reset();
     m_records.reset();
+    // An invalid or absent confirmed HEAD must never bootstrap writable user
+    // data under a provisional default declaration.
+    if (!m_document || !m_document->storageReady() || m_document->generation() < 1)
+        return reject("История приложения недоступна. Запись пользовательских данных заблокирована.");
     auto store = std::make_unique<LocalDataStore>();
     LocalDataSnapshot loaded;
     QString error;

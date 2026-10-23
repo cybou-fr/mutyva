@@ -1369,7 +1369,11 @@ private slots:
         QVERIFY(QFile::remove(folder.filePath("head.json")));
         AppDocument reopened(nullptr, folder.path());
         QCOMPARE(reopened.generation(), 0);
+        QVERIFY(!reopened.storageReady());
         QVERIFY(reopened.lastError().contains("HEAD"));
+        InteractionState frozen(&reopened);
+        QVERIFY(!frozen.ready());
+        QVERIFY(!frozen.setValue("citySearch", "should-not-write"));
         QVERIFY(!reopened.historyEntries().size());
         QVERIFY(!reopened.previewRestoreGeneration(1));
         QVERIFY(reopened.addHumidityCard());

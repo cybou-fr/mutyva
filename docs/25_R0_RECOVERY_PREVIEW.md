@@ -6,7 +6,7 @@
 
 **Previously:** if `head.json` was missing, `AppDocument` unconditionally committed a fresh City Pulse generation. Existing `generation-*.json` (including orphan `.meta.json`) could thus be misunderstood as a new install.
 
-**Now:** bootstrap is allowed **only when HEAD is absent and there are no generation files and no existing user-data database**. If any historical file or `data/user-data.sqlite` remains, the document enters a fail-closed, read-only error state, reports the missing HEAD and preserves all bytes for deliberate recovery. The user must never be auto-migrated to a new root and lose a clear reference to data.
+**Now:** bootstrap is allowed **only when HEAD is absent and there are no generation files and no existing user-data database**. If any historical file or `data/user-data.sqlite` remains, the document enters a fail-closed, read-only error state, reports the missing HEAD and preserves all bytes for deliberate recovery. The user must never be auto-migrated to a new root and lose a clear reference to data. `AppDocument::storageReady` is exposed read-only to Qt, and `InteractionState::reload()` refuses to open or mutate SQLite when a confirmed definition cannot be loaded; the app shows its storage error rather than treating the bundled demo as the user's active app.
 
 ### Selection contract
 
@@ -33,7 +33,7 @@ The summary includes component addition/removal/reordering, action/model impacts
 
 | Test name in `RuntimeTest.cpp` | What it proves in the Qt test fixture |
 |---|---|
-| `missingHeadFailsClosedWithoutDeletingFiles` | missing HEAD + generation, orphan-only folder and surviving private SQLite file all block bootstrap and preserve exact bytes |
+| `missingHeadFailsClosedWithoutDeletingFiles` | missing HEAD + generation, orphan-only folder and surviving private SQLite file all block bootstrap, preserve exact bytes, and leave `InteractionState` non-writable |
 | `verifiedHistoryRestoreRejectsOrphansAndPreservesRecords` | orphan skipped in sequence 4→2→1; only confirmed root can be previewed; Apply creates a fresh generation; private SQLite task row survives; ancestor tampering is rejected |
 | `semanticPreviewIncludesAllWidgetAndModelChanges` | style, filter, sort, options, message, source, icon, defaultCity, action, added field and permissions line are present; Cancel leaves HEAD unchanged; disallowed permission change rejected |
 | `qmlPreviewAndTitles` (extended) | ordinary mode renders the actual semantic preview; the history dialog exposes a trusted ancestor and invokes *preview*, not immediate rollback |
