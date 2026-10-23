@@ -49,6 +49,8 @@ The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authorita
 
 All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
 
+**CI prerequisite for Qt 6.12:** the upstream public `aqtinstall` feed returned "Failed to locate XML data" when installing Qt 6.12.0 (GitHub Actions [run 39935175486](https://github.com/cybou-fr/mutyva/actions/runs/39935175486)). The workflow therefore uses the official Qt Online Installer with GitHub Actions secrets **`QT_EMAIL` and `QT_PW`**, configured at *Repository → Settings → Secrets and variables → Actions*. The repository does **not** need those credentials at application runtime. Until secrets are configured and Qt 6.12 CTest passes, earlier Qt 6.8 results are only historical evidence; do not call Qt 6.12 CI green.
+
 **Required toolchain:** Qt **6.12.x** (Qt 6.12.0 or any 6.12 patch), Qt Quick/Controls 2/SQL, C++20, and MSVC 2022 on Windows. CMake rejects Qt prior to 6.12.0 and Qt 6.13 or newer. GitHub Actions builds with **Qt 6.12.0** and validates the installed version. The earlier Qt 6.8 runs remain historical test evidence, **not** a supported build target.
 
 ## Typed records and 21-component Qt palette

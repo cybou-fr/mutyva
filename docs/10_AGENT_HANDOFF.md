@@ -57,3 +57,7 @@ Historical evidence as of 2026-10-23 (Qt 6.8): [Qt/MSVC CI](https://github.com/c
 ## Definition of the “done” answer to the team
 
 Report: files changed; build/test commands run; evidence/screenshot; passed/failed checklist; remaining blockers explicitly. No claims about iOS/Android or auth unless actually tested.
+
+## Qt baseline and CI credentials (2026-10-23)
+
+**Qt 6.12.x is mandatory** in CMake and for Windows CI; no 6.8 fallback. The public `aqtinstall` XML feed failed for Qt 6.12.0 MSVC, so the CI uses the official Qt installer. Its Qt Account credentials must be stored only as GitHub Actions repository secrets `QT_EMAIL` and `QT_PW`; never add them to tracked files, logs, AI requests or artifacts. Before accepting the Qt 6.12 gate, check the CI version verification, CMake, CTest and all 21 screenshot captures. Historical green Qt 6.8 runs are not sufficient for this acceptance.

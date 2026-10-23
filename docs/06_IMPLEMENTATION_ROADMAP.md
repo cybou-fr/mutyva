@@ -4,6 +4,8 @@
 
 **Workflow:** straight to `main`, small commits, docs kept in sync; avoid speculative release-number archaeology. Acceptance is measured by demonstrable behavior, not number of classes added.
 
+**Qt 6.12 CI installation gate:** The public `aqtinstall` feed did not serve the Qt 6.12.0 MSVC metadata ([failure](https://github.com/cybou-fr/mutyva/actions/runs/39935175486)). CI now uses Qt's official installer with repository secrets `QT_EMAIL` and `QT_PW`, which must be configured before Windows Qt 6.12 verification can complete. Do not revert to Qt 6.8 for a passing badge; the Qt 6.12 acceptance gate remains open until MSVC build, full CTest and gallery pass.
+
 **Qt baseline decision (2026-10-23):** MUTYVA requires **Qt 6.12.x**. CMake enforces the 6.12 series, and Windows CI is pinned to **6.12.0**. All prior green Windows Qt 6.8 results below remain historical until a Qt 6.12 rerun succeeds. Do not treat earlier Qt 6.8 artifact captures as Qt 6.12 evidence.
 
 ## Roadmap contract (reviewed 2026-10-23; baseline main 4ff67fb)
