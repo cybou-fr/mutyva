@@ -12,6 +12,7 @@ docs = [ROOT / p for p in [
     "docs/24_ARCHITECTURE_WORKFLOW.md",
     "docs/CASE_STUDY_FR.md",
     "docs/25_R0_RECOVERY_PREVIEW.md",
+    "docs/26_QT612_ACCEPTANCE.md",
     "docs/adr/README.md",
 ]]
 adrs = sorted((ROOT / "docs/adr").glob("[0-9][0-9][0-9][0-9]-*.md"))
@@ -54,6 +55,17 @@ for key in ["historyEntries()", "previewRestoreGeneration(", "head.json", "displ
 for key in ["semanticPreview", "openHistory", "restoreGeneration-"]:
     if key not in qml_source:
         errors.append(f"Missing R0 UI entry point: {key}")
+qt_gate = read(ROOT / "tools/verify-qt612.ps1")
+for contract in [
+    "6[.]12[.][0-9]+", "Visual Studio 17 2022", "ctest --test-dir",
+    "paletteCaptureScreenshots", "Expected 21 fresh Qt screenshots",
+    "gitCommit", "qt612-acceptance.json"
+]:
+    if contract not in qt_gate:
+        errors.append("Qt 6.12 native gate missing: " + contract)
+workflow = read(ROOT / ".github/workflows/windows-qt.yml")
+if "tools/verify-qt612.ps1" not in workflow:
+    errors.append("Windows CI does not invoke canonical Qt 6.12 native gate")
 for adr in adrs:
     text = read(adr)
     if not re.search(r"^# ADR-\d{4}\s", text, re.M):

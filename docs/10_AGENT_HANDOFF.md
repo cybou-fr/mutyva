@@ -79,3 +79,7 @@ For design work, read [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md), 
 ## Independent static contract CI
 
 The new `.github/workflows/contracts.yml` validates the AI guide, component catalog, QML kind routes and current JSON Schema examples on Python 3.12, without Qt secrets. [Run 39955309544](https://github.com/cybou-fr/mutyva/actions/runs/39955309544) passed. That success does **not** imply a Qt 6.12 runtime test. The [Windows run](https://github.com/cybou-fr/mutyva/actions/runs/39955309495) stopped before compilation on absent Qt Account credentials; keep the Qt gate open.
+
+## Repeatable Qt 6.12 acceptance (local/CI same script)
+
+Use [26_QT612_ACCEPTANCE.md](26_QT612_ACCEPTANCE.md) and the single [tools/verify-qt612.ps1](../tools/verify-qt612.ps1) for Windows Qt 6.12.x. It verifies native Qt version, MSVC build/CTest, 21 fresh distinct Qt screenshot captures and writes an evidence report naming exact HEAD. This script is usable on a developer's installed Qt 6.12 kit without GitHub Qt Account secrets. On hosted Windows Actions, installation still needs `QT_EMAIL`/`QT_PW`; the workflow calls the same gate and publishes artifacts. **Do not mark R0-05 or R0-02/R0-03 accepted** merely because the script exists.

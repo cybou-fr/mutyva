@@ -41,6 +41,9 @@ The summary includes component addition/removal/reordering, action/model impacts
 
 ### Validate (required Qt 6.12 kit)
 
+**Preferred single authoritative gate:** `pwsh -NoProfile -File tools/verify-qt612.ps1 -QtRoot "C:\\Qt\\6.12.0\\msvc2022_64"`. Full instructions: [Qt 6.12 acceptance](26_QT612_ACCEPTANCE.md). GitHub Actions uses the same native gate, after installing Qt with protected Qt Account secrets.
+
+
 ```powershell
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH=C:/Qt/6.12.0/msvc2022_64 -DBUILD_TESTING=ON
 cmake --build build --config Release
