@@ -8,7 +8,7 @@
 
 **Qt baseline decision (2026-10-23):** MUTYVA requires **Qt 6.12.x**. CMake enforces the 6.12 series, and Windows CI is pinned to **6.12.0**. All prior green Windows Qt 6.8 results below remain historical until a Qt 6.12 rerun succeeds. Do not treat earlier Qt 6.8 artifact captures as Qt 6.12 evidence.
 
-## Roadmap contract (reviewed 2026-10-23; baseline main 4ff67fb)
+## Roadmap contract (reviewed 2026-10-23; baseline current main)
 
 **Two acceptance levels, not a silent change of the original MVP:**
 
@@ -16,7 +16,7 @@
 - **Useful-app MVP (U-MVP):** a person creates an independent local task manager from a chat request, stores and edits structured records, then asks AI to add priority/due date/filtering without losing those records. Slices 5–7 are its additional acceptance gates.
 - **Cross-platform release:** Windows distribution and Android real-device proof after the U-MVP is functional; Slice 8. Additional platforms are verification targets, not current claims.
 
-**Execution order:** fix blocking durability/preview problems in Slice 2 first; close the remaining Foundation acceptance tests from Slices 0/4; then build Slice 5 → 6 → 7 → 8. Keep the working Windows ChatGPT integration; do not expand it while the runtime cannot create useful applications.
+**Execution order:** fix blocking durability/preview problems in Slice 2 first; close the remaining Foundation acceptance tests from Slices 0/4 and Qt 6.12 verification; finish Slice 5 storage/data migration → **R1C composition** → Slice 6 (multiple local apps) → Slice 7 (AI app creation) → Slice 8 (portability). Keep the working Windows ChatGPT integration; do not expand it while the runtime cannot create useful applications.
 
 **Status conventions:** [x] means implemented or documented by current repo evidence, not independently audited; [ ] is not accepted. Each new work item below has an ID, a narrow implementation scope, and a pass/fail gate. Tests and user-visible behavior are the deliverable, not class count. Existing features remain regression requirements.
 
@@ -26,7 +26,8 @@
 |---|---|---|---|
 | R0 / Slice 2 + outstanding 0/4 | Existing code | Reliable previews, restore, weather demo | F-MVP gate |
 | R1 / Slice 5 | R0 | Persistent typed records, safe CRUD and simple filtering | Data gate |
-| R2 / Slice 6 | R1 | Create/switch multiple separate local apps | Workspace gate |
+| R1C / Composition | R1 typed storage | One-way typed dataflow, typed actions, responsive layout and safe external snapshots | Composition gate |
+| R2 / Slice 6 | R1C | Create/switch multiple separate local apps | Workspace gate |
 | R3 / Slice 7 | R2 | Chat creates and evolves task manager from scratch | U-MVP gate |
 | R4 / Slice 8 | R3 | Installable Windows + tested Android runtime | Release gate |
 
@@ -121,6 +122,23 @@ The current code contains a **tested additive v2 typed-record contract** (Record
 
 **Design constraint:** use a small host-owned SQLite records table with validated typed JSON/columns; do not create arbitrary SQL tables or run user/model-supplied SQL in this phase. Avoid a general workflow language.
 
+## R1C / Composition — the smallest useful AI application grammar (NEW, P0 before R2)
+
+**Why:** 21 kinds are not enough if AI cannot make them **communicate**. In current v2, Notes work via two fixed list actions; record forms/lists share a model; weather bindings are fixed. No generic source-to-property selector, dynamic filter binding, host event routing, layout constraints or arbitrary remote API is present. Simply prompting AI to use imaginary `bind`/`onClicked` creates broken applications. See [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md), [21_CONNECTOR_CONTRACT.md](21_CONNECTOR_CONTRACT.md) and [22_AI_DESIGN_PLAYBOOK.md](22_AI_DESIGN_PLAYBOOK.md).
+
+**Delivered now as preparation:** the bundled `runtime/designer-capabilities.json` guide is supplied in `DesignerContext`, with five small grounded recipes, role groupings, working wiring descriptions and an explicit unsupported/future capabilities list. CTest/static gate verifies catalog references, no conflicting support status and AI context inclusion. **This is truthful guidance, not implementation of the v3 graph.** Qt 6.12 end-to-end CI remains blocked on missing official-installer secrets; historical Qt 6.8 tests do not certify this new code.
+
+- [ ] **C1 / P0 — typed one-way selectors and binding ports.** Introduce versioned host-declared output/input ports and compatible selectors for record selection → trusted Text/read-only view. Use stable widget/model IDs, typed null/empty/loading/error, app isolation, subscription lifetime and graph limits. Never allow string-evaluated expressions or QML supplied by AI. Gate: select/edit/delete a task and a linked label updates, including after restart and missing selection; bad type, missing ID and cycles rejected.
+- [ ] **C2 / P0 — event-to-host-action route.** A registered event can dispatch exactly one typed host action with validated field sources; separate persistent record mutations from UI-only state changes; result/error events are bounded. Gate: trusted action fired once, duplicate click/stale revision/error has no partial write, invalid/unauthorized action rejected. The existing `record-form/list` and notes actions remain backwards-compatible.
+- [ ] **C3 / P1 — accessible responsive layout primitives.** Extend only the known `stack/row/card/tabs` with a tiny token-based `gap/align/compact-versus-wide` contract. Qt owns measurement and accessible focus. Gate: 360dp + desktop screenshots/focus order; no overlap, horizontal overflow, invisible required controls or raw position expressions. Do not add Grid/Canvas as arbitrary model-controlled code.
+- [ ] **C4a / P0 — normalized typed source snapshots.** Expose **existing** Open-Meteo data to a generic read-only port through registry-approved selectors with typed `loading/ready/empty/error/stale` status, bounded refresh/cancellation and source revisions; never send live payloads to AI. Gate: two views share the same source, no duplicate fetch, old response ignored and offline state honest.
+- [ ] **C4b / P1 — second curated public HTTPS adapter (not arbitrary REST).** Only after C4a: one vetted read-only provider manifest, fixed allowlisted host and output schema, permission preview, strict HTTPS/redirect/network bounds, response limits, stale cache, clear attribution. Gate: offline HTTP fixture and SSRF/redirect/permissions tests; **no remote write or credentials**.
+- [ ] **C5 / P0 — AI composer fixtures and semantic preview.** An app-intent test corpus (notes, tasks, weather, multi-panel) must produce the minimal *valid* local composition; unsupported dynamic bindings and arbitrary API requests yield truthful `unsupported`. Snapshot all four dimensions (layout, data, actions and external permissions) in the readable preview. Gate: 10 deterministic fixtures with no fake features, no side effects before Apply, no private record rows in AI context; the real ChatGPT gate remains R3.
+
+**Composition acceptance (before R2):** with *manual schema-valid definitions*, build a local Task Manager in which form/list/selection/read-only detail share actual typed data; buttons invoke only allowlisted actions; layouts reflow from narrow to desktop; Open-Meteo provides a read-only normalized source. All app records survive restart and definition rollback. The host rejects fake bindings, uninstalled providers, secrets and new permission grants in an unapproved mutation. Only **then** automate this through ChatGPT.
+
+**Version boundary:** current application schema remains **v2**; R1-01 must provide the opt-in v3 migration/compatibility before any C1–C4 new top-level ports, events, layout or source fields become executable. Documentation examples explicitly marked "future" are **not valid v2**. Avoid generic workflow engines, expression languages, third-party plugins, unrestricted REST and extra models.
+
 ## Slice 6 / R2 — independent local applications and workspaces
 
 - [ ] **R2-01 / P0 — AppCatalog and selection.** List locally installed app manifests and titles; create a blank or bundled template with a new stable ID; open, switch and rename independently. Existing City Pulse data/history must migrate or remain addressable without changing the working current install.
@@ -152,15 +170,15 @@ The current code contains a **tested additive v2 typed-record contract** (Record
 
 ## Later research (explicitly NOT a U-MVP dependency)
 
-Arbitrary REST/SQL connectors, DataTable beyond the task demo, cross-app workflows, rich charting, free-form calculation/expression language, third-party plugin code, visual RAD designer, multi-provider inference, community sharing/sync, marketplace, filesystem automation and generation of executables. Add any of these only for a demonstrated user scenario and a documented security model.
+Unrestricted REST/SQL connectors (distinct from vetted C4 read-only adapters), DataTable beyond the task demo, cross-app workflows, rich charting, free-form calculation/expression language, third-party plugin code, visual RAD designer, multi-provider inference, community sharing/sync, marketplace, filesystem automation and generation of executables. Add any of these only for a demonstrated user scenario and a documented security model.
 
 ## Execution tickets — first implementation batches
 
-1. **Batch A, immediately:** R0-01 regression exposing numeric rollback across an orphan, then safe parent-based history; R0-03 readable preview including defaultCity. Do not mix UI redesign with storage refactor.
-2. **Batch B:** R0-02 selected restore and corruption/crash tests; R0-04 weather bounds/fixtures; R0-05 CI/license. Finish R0-06 clean Windows acceptance.
-3. **Batch C:** R1-01 versioned typed model + migration; R1-02 SQLite CRUD; R1-07 unit/transaction tests. Gate without AI.
-4. **Batch D:** R1-03 components and R1-04 actions; R1-05 safe schema addition; R1-06 filters; task manager manual end-to-end.
-5. **Batch E:** R2-01 through R2-04 app catalog, isolation, switching and tests.
+1. **Batch A, next:** R0-02 selected history/recovery and R0-03 readable preview including actions/models/permissions; keep Qt 6.12 CI access an explicit gate. Do not mix UI redesign with storage refactor.
+2. **Batch B:** R0-04 weather bounds/fixtures; R0-05 Qt 6.12 CI/license and clean-install verification. Finish R0-06 clean Windows acceptance.
+3. **Batch C:** R1-01 schema v3 migration/compatibility; harden already landed R1-02 SQLite CRUD and R1-07 transaction/error-injection tests. Gate without AI.
+4. **Batch D:** finish R1-04/R1-05/R1-06 contract acceptance and C1 typed selector → UI, then C2 typed event/action and C3 responsive tokens.
+5. **Batch E:** C4a Open-Meteo normalized snapshot and vetted C4b only if required; C5 AI fixture quality; then R2-01 through R2-04 independent app catalog/isolation.
 6. **Batch F:** R3-01 through R3-05 create-app contract, preview, actual ChatGPT Task Manager create→mutate→offline scenario.
 7. **Batch G:** R4 only after U-MVP gate; begin Windows package + Android offline proof, then protected session work as needed.
 

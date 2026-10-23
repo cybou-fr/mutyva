@@ -4,6 +4,8 @@ This is the **actual allowlisted palette shipped by the current source**, not a 
 
 **21 kinds = 5 Open-Meteo widgets + 16 general/data UI widgets.** New properties and models are *backwards-compatible optional additions to schemaVersion 2*, deliberately avoiding an untested v3 migration. The v3 breaking-version gate is **not** complete. Legacy documents without `models` still validate.
 
+**Composition semantics:** see [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md) for the *planned* typed ports/events, [21_CONNECTOR_CONTRACT.md](21_CONNECTOR_CONTRACT.md) for secure external snapshots and [22_AI_DESIGN_PLAYBOOK.md](22_AI_DESIGN_PLAYBOOK.md) for composition recipes. A small machine-readable fact guide in `runtime/designer-capabilities.json` is included in AI context, **without changing current v2 component capabilities**.
+
 ## Global rules
 
 - Every widget has a stable `id`, a registered `kind` and optionally `title` and `parent`. The `parent` must refer to a `card`, `stack`, `row` or `tabs`. Max 100 widgets and 8 levels. Unknown properties are rejected per kind.

@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonParseError>
 
 QString DesignerContext::instructions() {
     QFile file(":/runtime/designer-rules.txt");
@@ -19,14 +20,28 @@ bool DesignerContext::build(const QJsonObject &document, int generation, const Q
     }
     const auto rules = instructions();
     if (rules.isEmpty()) { error = "Правила дизайнера недоступны"; return false; }
+    QFile capabilityFile(":/runtime/designer-capabilities.json");
+    if (!capabilityFile.open(QIODevice::ReadOnly) || capabilityFile.size() > 32 * 1024) {
+        error = "Справочник возможностей AI недоступен или слишком велик";
+        return false;
+    }
+    QJsonParseError parseError;
+    const auto guideDocument = QJsonDocument::fromJson(capabilityFile.readAll(), &parseError);
+    if (parseError.error != QJsonParseError::NoError || !guideDocument.isObject() ||
+        guideDocument.object().value("guideVersion") != QJsonValue(1) ||
+        guideDocument.object().value("applicationSchemaVersion") != QJsonValue(2)) {
+        error = "Справочник возможностей AI повреждён или несовместим";
+        return false;
+    }
     const QJsonObject context{
         {"contextVersion", 1}, {"baseGeneration", generation},
         {"productConcept", QJsonObject{
             {"name", "MUTYVA"},
             {"purpose", "Локальная среда приложений из проверенных компонентов. AI проектирует; Qt исполняет сохранённую декларацию без AI."},
             {"currentScope", "Доверенный каталог содержит элементы интерфейса и локальные типизированные модели. Записи и значения не входят в AI-контекст."},
-            {"layout", "flat-widget-list-with-parent-references; card/stack/row containers; max depth 8"}}},
+            {"layout", "flat-widget-list-with-parent-references; card/stack/row/tabs; max depth 8; no custom breakpoints"}}},
         {"installedComponentCatalog", QJsonArray::fromVariantList(DeclarativeRuntime::catalog())},
+        {"compositionGuide", guideDocument.object()},
         {"currentApplication", document},
         {"mutationSchema", DeclarativeRuntime::bundledSchema("mutation")},
         {"appSchema", DeclarativeRuntime::bundledSchema("app")},

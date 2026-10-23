@@ -1,0 +1,314 @@
+{
+  "guideVersion": 1,
+  "applicationSchemaVersion": 2,
+  "contextRole": "Trusted capability facts and composition recipes for the current installed Qt runtime. This object is not an executable specification; authoritative validation still uses installedComponentCatalog and bundled schemas.",
+  "canNow": [
+    "mutate-current-app",
+    "append-model-or-field",
+    "render-21-compiled-kinds",
+    "nested-parent-layout",
+    "SQLite-widget-values",
+    "app-scoped-record-CRUD",
+    "record-list-static-typed-filter-sort",
+    "two-fixed-list-actions",
+    "Open-Meteo-fixed-bindings",
+    "preview-apply-cancel"
+  ],
+  "cannotNow": [
+    "create-independent-app",
+    "generic-dynamic-bindings-between-widgets",
+    "generic-event-action-routing",
+    "computed-expressions",
+    "arbitrary-REST-connectors",
+    "remote-CRUD",
+    "user-controlled-QML-JS-SQL",
+    "responsive-custom-grid",
+    "cross-app-data-transfer"
+  ],
+  "stateKinds": [
+    {
+      "kind": "configuration",
+      "stored": "generation-history",
+      "mutability": "after-confirmed-Apply",
+      "examples": [
+        "widget.title",
+        "record-list.filter",
+        "city-search.defaultCity"
+      ]
+    },
+    {
+      "kind": "widgetValue",
+      "stored": "SQLite-widget_data",
+      "mutability": "trusted-widget-events",
+      "examples": [
+        "input.value",
+        "checkbox.value",
+        "select.value",
+        "date-picker.value",
+        "list.items"
+      ]
+    },
+    {
+      "kind": "record",
+      "stored": "SQLite-record_data",
+      "mutability": "record-form-or-record-list-actions",
+      "examples": [
+        "tasks.title",
+        "tasks.done",
+        "tasks.dueDate"
+      ]
+    },
+    {
+      "kind": "externalSnapshot",
+      "stored": "connector-state",
+      "mutability": "trusted-connector-only",
+      "examples": [
+        "weather.current.temperature",
+        "weather.daily",
+        "air.current.european_aqi"
+      ]
+    },
+    {
+      "kind": "transientSelection",
+      "stored": "memory",
+      "mutability": "record-list-selection",
+      "examples": [
+        "selected-task-id"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "role": "visual-content",
+      "kinds": [
+        "text",
+        "image",
+        "icon"
+      ],
+      "note": "text is static; image sources are bundled; no arbitrary dynamic bindings"
+    },
+    {
+      "role": "containers",
+      "kinds": [
+        "card",
+        "stack",
+        "row",
+        "tabs"
+      ],
+      "note": "use widget.parent and order; row reflows on narrow widths; only style.tone/padding"
+    },
+    {
+      "role": "local-inputs",
+      "kinds": [
+        "input",
+        "checkbox",
+        "select",
+        "date-picker"
+      ],
+      "note": "stored by widget ID in SQLite; not automatically linked to other widget values"
+    },
+    {
+      "role": "simple-list",
+      "kinds": [
+        "button",
+        "list"
+      ],
+      "note": "button supports append-item and clear-list only, with validated targets"
+    },
+    {
+      "role": "typed-records",
+      "kinds": [
+        "record-form",
+        "record-list"
+      ],
+      "note": "shared model ID enables form/list CRUD; record-list.filter/sort are static declaration properties"
+    },
+    {
+      "role": "built-in-external",
+      "kinds": [
+        "city-search",
+        "weather-card",
+        "forecast-list",
+        "air-card",
+        "humidity-card"
+      ],
+      "note": "compiled Open-Meteo adapter only, not a generic REST capability"
+    }
+  ],
+  "wiring": [
+    {
+      "id": "notes",
+      "status": "implemented",
+      "from": "input.value",
+      "event": "button.append-item",
+      "to": "list.items",
+      "notes": "button.action.input and button.action.target must refer to existing widget IDs"
+    },
+    {
+      "id": "clear-notes",
+      "status": "implemented",
+      "from": "button.clear-list",
+      "to": "list.items",
+      "notes": "button.action.target must refer to an existing list ID"
+    },
+    {
+      "id": "task-CRUD",
+      "status": "implemented",
+      "from": "record-form",
+      "to": "SQLite record model",
+      "notes": "record-list with same model can show, select and delete records"
+    },
+    {
+      "id": "city-weather",
+      "status": "implemented",
+      "from": "city-search",
+      "to": "Open-Meteo fixed view widgets",
+      "notes": "shared selected city; cannot bind generic text to numeric weather fields"
+    },
+    {
+      "id": "generic-select-to-filter",
+      "status": "unavailable",
+      "from": "select.value",
+      "to": "record-list.filter",
+      "notes": "there is no runtime subscription from select to record-list; do not claim functional dynamic filtering"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "local-notes",
+      "userIntents": [
+        "сделай заметки",
+        "заметки и быстрый ввод"
+      ],
+      "needs": [
+        "input",
+        "button",
+        "list"
+      ],
+      "steps": [
+        "Create input noteInput, list notesList, button addNote with action.kind=append-item, input=noteInput, target=notesList",
+        "Optionally add a clear-list button with target notesList",
+        "Use a card/stack and stable IDs"
+      ],
+      "validation": [
+        "both referenced widgets exist",
+        "actions are allowlisted"
+      ],
+      "whatWorks": "Append/clear local notes; values survive restart",
+      "notSupported": "full-text search and record relations"
+    },
+    {
+      "id": "tasks-with-data",
+      "userIntents": [
+        "создай список задач в этом приложении",
+        "управление задачами"
+      ],
+      "needs": [
+        "record-form",
+        "record-list"
+      ],
+      "steps": [
+        "If model tasks missing, addModel with text title required+default, boolean done default=false; keep field IDs stable",
+        "Add record-form model=tasks and record-list model=tasks",
+        "For incomplete-only view use static filter {field:done,op:equals,value:false}",
+        "For priority sorting, first addField priority:integer default=0 then set sort field=priority"
+      ],
+      "validation": [
+        "model exists before widgets reference it",
+        "field default type matches",
+        "do not change or delete existing fields"
+      ],
+      "whatWorks": "Host-managed typed SQLite CRUD with static filter/sort and persistence",
+      "notSupported": "independent app creation or dynamic selector-driven filters"
+    },
+    {
+      "id": "weather-composition",
+      "userIntents": [
+        "покажи прогноз и влажность",
+        "сделай погодный экран"
+      ],
+      "needs": [
+        "city-search",
+        "weather-card",
+        "forecast-list"
+      ],
+      "steps": [
+        "Reuse current Open-Meteo source declarations and permission",
+        "Add trusted forecast, humidity and current-weather kinds only if missing",
+        "Place cards in responsive card/row/stack hierarchy",
+        "To change startup city use city-search.defaultCity; synchronize all explicit defaults"
+      ],
+      "validation": [
+        "no added dataSources or permissions in current edit",
+        "no arbitrary URL"
+      ],
+      "whatWorks": "Fixed Open-Meteo views update when selected city changes",
+      "notSupported": "arbitrary REST provider or dynamic text binding"
+    },
+    {
+      "id": "responsive-panels",
+      "userIntents": [
+        "раздели на вкладки",
+        "покажи две панели на компьютере"
+      ],
+      "needs": [
+        "card",
+        "row",
+        "stack",
+        "tabs"
+      ],
+      "steps": [
+        "Create parent containers and place child widget IDs under their parent",
+        "Use row for wide and auto-stacked narrow layout",
+        "Use tabs to group direct child panels, avoid deep nesting"
+      ],
+      "validation": [
+        "no cycles",
+        "depth <= 8",
+        "no nonexistent parent"
+      ],
+      "whatWorks": "Parent-referenced responsive Qt containers",
+      "notSupported": "custom columns, breakpoints and computed visual rules"
+    },
+    {
+      "id": "unsupported-external",
+      "userIntents": [
+        "подключи произвольный API",
+        "синхронизируй задачи с облаком"
+      ],
+      "needs": [],
+      "steps": [
+        "Return status=unsupported identifying missing provider/permission/remote-write capability",
+        "If useful, offer an offline local-record or existing Open-Meteo alternative"
+      ],
+      "validation": [
+        "do not emit unregistered source, host, or executable action"
+      ],
+      "whatWorks": "Clear supported/unsupported boundary",
+      "notSupported": "external APIs other than Open-Meteo"
+    }
+  ],
+  "futureOnly": [
+    {
+      "capability": "typed-cross-component-bindings",
+      "ticket": "C1"
+    },
+    {
+      "capability": "generic-host-event-action-router",
+      "ticket": "C2"
+    },
+    {
+      "capability": "responsive-layout-constraints",
+      "ticket": "C3"
+    },
+    {
+      "capability": "normalized-connector-state-to-view",
+      "ticket": "C4"
+    },
+    {
+      "capability": "multi-app-and-AI-createApplication",
+      "ticket": "R2/R3"
+    }
+  ],
+  "userFacingPreview": "Explain actual component/model/action/source changes, not implicit network or data effects. Proposals do not execute until user Apply."
+}

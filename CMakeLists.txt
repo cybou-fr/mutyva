@@ -29,7 +29,7 @@ target_link_libraries(mutyva-core PUBLIC Qt6::Core Qt6::Sql Qt6::Network Qt6::Gu
 qt_add_resources(mutyva-core "runtime_data" PREFIX "/" FILES
     specs/app.schema.json specs/mutation.schema.json
     examples/city-pulse.mutyva.json examples/mutations/add-humidity-card.json
-    runtime/component-catalog.json runtime/designer-rules.txt specs/designer-response.schema.json
+    runtime/component-catalog.json runtime/designer-rules.txt runtime/designer-capabilities.json specs/designer-response.schema.json
     specs/app-v1.schema.json specs/mutation-v1.schema.json examples/general-workspace.mutyva.json examples/task-manager.mutyva.json
     branding/exports/mutyva-icon.png branding/exports/mutyva-logo.png branding/exports/mutyva-symbol.png branding/palette.json
 )

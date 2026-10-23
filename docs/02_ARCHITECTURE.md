@@ -2,6 +2,12 @@
 
 **Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
 
+## Current versus target (mandatory distinction)
+
+The **implemented Qt 6.12 target baseline** is enforced in CMake (Windows Qt 6.12 CI needs official-installer secrets). Compiled host classes today are `AppDocument`, `DeclarativeRuntime`, `InteractionState`, `LocalDataStore`, `RecordStore`, `WeatherService`, `DesignerContext`, `AiChat` and `ChatSession`. The diagram/table below describe the **target logical responsibilities**, not a claim that each row is an implemented standalone class. Actual component kinds and restrictions are in [19_COMPONENT_REFERENCE.md](19_COMPONENT_REFERENCE.md).
+
+See [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md) for typed cross-component bindings, event/action routing, responsive tokens and app-scoped state; [21_CONNECTOR_CONTRACT.md](21_CONNECTOR_CONTRACT.md) for vetted external datasets; [22_AI_DESIGN_PLAYBOOK.md](22_AI_DESIGN_PLAYBOOK.md) for the grounded capability guide now supplied to the AI designer.
+
 ## Runtime layers
 
 ```mermaid
@@ -78,6 +84,10 @@ Full MVP uses SQLite catalog with `apps`, `generations`, `component_installation
 
 `QOAuth2AuthorizationCodeFlow` helps with PKCE, but a production OIDC verifier must validate tokens and a protected credential store must be implemented; “Qt has OAuth” is not equal to “we have secure ChatGPT auth”. Native loopback callback on `127.0.0.1` must be proven on each mobile OS. See `03_CHATGPT_AUTH.md` and `08_PLATFORMS_RELEASE.md`.
 
-## First integrated vertical slice
+## Working source baseline (2026-10-23)
 
-The current implementation has live public API calls, QML, twelve component kinds, nested v2 declarations, four mutation operations, preview/apply/cancel, manual JSON editing and file-based generations. `mutyva-core` contains validation/mutations, `AppDocument`, inspectable AI context construction and `InteractionState` for generic SQLite-backed inputs/lists and allowlisted actions. Weather bindings are fixed. Delegates are recreated on configuration changes; local user data is keyed by app ID, stable widget ID and kind. Legacy v1 snapshots are retained during append-only migration. Fusion controls and an explicit dark palette keep the editor consistent. Generic business records, DataTable, full history browsing remain future work. Windows ChatSession handles browser sign-in and identity verification; AiChat performs model discovery and SSE inference into the existing preview path. Real-account verification, protected persistent sessions and refresh are pending; see doc15.
+The repository implements 21 trusted Qt/QML component kinds, one running City Pulse app, immutable definition generations with verified ancestry, typed local SQLite record CRUD, static model filters/sort, narrow/wide row behavior, five compiled Open-Meteo views, browser-based ChatGPT editing and an inspectable mutation preview path. A Task Manager example runs **within that original app**; it is **not** independent multi-app creation. The Qt 6.8 CI passed the existing baseline, but **Qt 6.12 validation remains blocked on Qt Account secrets**, not assumed passed.
+
+**Wiring today is limited:** two generic list actions, host-owned record-form/list sharing a model and fixed Open-Meteo city/weather bindings. `select` cannot dynamically filter `record-list` and generic `text` cannot bind to arbitrary model or connector fields. DesignerContext now supplies a machine-readable recipe/capability guide to prevent false compositions, without changing the existing schema v2.
+
+**Planned composition internals:** app-scoped read-only typed selectors → bounded dependency invalidation → Qt rendering; a host-only typed event/action dispatcher → SQLite transactions; normalized external source snapshots → the same view-port API; semantic preview before any persistent mutation or newly requested network permission. These are gated by opt-in schema v3, deterministic tests and the R1C tickets, and must not be presented as working functionality yet.

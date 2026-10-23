@@ -1130,6 +1130,15 @@ private slots:
         QCOMPARE(context.value("userRequest").toString(), QString::fromUtf8(request));
         QCOMPARE(context.value("baseGeneration").toInt(), 7);
         QCOMPARE(context.value("installedComponentCatalog").toArray().size(), 21);
+        const auto guide = context.value("compositionGuide").toObject();
+        QCOMPARE(guide.value("guideVersion").toInt(), 1);
+        QCOMPARE(guide.value("applicationSchemaVersion").toInt(), 2);
+        QVERIFY(guide.value("recipes").toArray().size() >= 4);
+        QVERIFY(guide.value("canNow").toArray().contains("app-scoped-record-CRUD"));
+        QVERIFY(guide.value("cannotNow").toArray().contains("arbitrary-REST-connectors"));
+        QVERIFY(!guide.value("canNow").toArray().contains("arbitrary-REST-connectors"));
+        QVERIFY(!guide.contains("credentials"));
+        QVERIFY(!guide.contains("userRecords"));
         QVERIFY(context.contains("designerResponseSchema"));
         QVERIFY(!context.contains("weatherReadings"));
         QVERIFY(!context.contains("history"));

@@ -27,7 +27,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/03_CHATGPT_AUTH.md` | Verified Sign in with ChatGPT integration blueprint |
 | `docs/04_DECLARATIVE_RUNTIME.md` | Declarative schema, controlled mutations and history |
 | `docs/05_DEMO_CITY_PULSE.md` | Public APIs, response mapping and demo narrative |
-| `docs/06_IMPLEMENTATION_ROADMAP.md` | Current R0–R4 execution queue: Foundation MVP, local data, multi-app, AI app creation, Android/release |
+| `docs/06_IMPLEMENTATION_ROADMAP.md` | Current R0–R4 queue plus R1C typed composition/interaction/layout/connector gates |
 | `docs/07_TESTING_SECURITY.md` | End-to-end acceptance, threats, offline and error tests |
 | `docs/08_PLATFORMS_RELEASE.md` | Windows, Android, macOS, Linux and iOS strategy |
 | `docs/09_ENGINEERING_DECISIONS.md` | Binding decisions and non-goals |
@@ -40,18 +40,28 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/12_GENERAL_PALETTE.md` + `docs/19_COMPONENT_REFERENCE.md` | 21 allowlisted Qt component kinds, examples and checked palette contracts |
 | `docs/14_CHAT_FIRST_UX.md` + `docs/15_AI_CONNECTION.md` | Primary chat UX, Windows AI integration and honest verification limits |
 | `docs/13_LOCAL_DATA.md` | Persistent SQLite input/list values plus app-scoped typed records and CRUD |
+| `docs/20_COMPOSITION_CONTRACT.md` | Proposed typed binding/event/action grammar and responsive visual layout (not implemented in v2) |
+| `docs/21_CONNECTOR_CONTRACT.md` | Vetted HTTPS external-data adapters, typed snapshots, permissions, SSRF and offline behavior |
+| `docs/22_AI_DESIGN_PLAYBOOK.md` | AI composer planning/anti-examples and present-vs-future capability status |
+| `runtime/designer-capabilities.json` | Bundled, concise machine-readable recipes and truthful capability map delivered to AI context |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
 ## Active development roadmap (2026-10-23)
 
-The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authoritative work queue. It keeps the original **Foundation MVP** (City Pulse + safe AI mutation + offline restart) distinct from the next **Useful-app MVP** (ChatGPT creates a local Task Manager with real records and safely evolves its data model). Current priority is **R0-01: verify/fix generation parent-aware rollback across orphan snapshot gaps**, followed by normal-user semantic preview, structured SQLite CRUD, independent local apps and AI app creation. The agent's [handoff](docs/10_AGENT_HANDOFF.md) follows the same ticket IDs.
+The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authoritative work queue. It keeps the original **Foundation MVP** (City Pulse + safe AI mutation + offline restart) distinct from the next **Useful-app MVP** (ChatGPT creates a local Task Manager with real records and safely evolves its data model). Current priority is **R0-02 verified history/recovery and R0-03 meaningful preview**, plus the **mandatory Qt 6.12.x build gate**. The record CRUD/palette base is in source; next is **R1C: typed cross-component dataflow → host action routing → responsive layout → normalized trusted external snapshots**, followed by separate local apps (R2) and AI creation (R3). The agent's [handoff](docs/10_AGENT_HANDOFF.md) follows the same ticket IDs.
 
-All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
+Roadmap checkboxes represent explicitly scoped evidence: R0-01 and initial SQLite CRUD/UI kinds passed historical Windows Qt 6.8 CI, but **Qt 6.12.x CI has not passed**, schema v3/generic bindings/remote sources/multi-app support are NOT shipped. A Task Manager composition exists inside the original local app; AI cannot yet create an independent app.
 
 **CI prerequisite for Qt 6.12:** the upstream public `aqtinstall` feed returned "Failed to locate XML data" when installing Qt 6.12.0 (GitHub Actions [run 39935175486](https://github.com/cybou-fr/mutyva/actions/runs/39935175486)). The workflow therefore uses the official Qt Online Installer with GitHub Actions secrets **`QT_EMAIL` and `QT_PW`**, configured at *Repository → Settings → Secrets and variables → Actions*. The repository does **not** need those credentials at application runtime. Until secrets are configured and Qt 6.12 CTest passes, earlier Qt 6.8 results are only historical evidence; do not call Qt 6.12 CI green.
 
 **Required toolchain:** Qt **6.12.x** (Qt 6.12.0 or any 6.12 patch), Qt Quick/Controls 2/SQL, C++20, and MSVC 2022 on Windows. CMake rejects Qt prior to 6.12.0 and Qt 6.13 or newer. GitHub Actions builds with **Qt 6.12.0** and validates the installed version. The earlier Qt 6.8 runs remain historical test evidence, **not** a supported build target.
+
+## AI application composition: a truthful, connected platform
+
+MUTYVA now gives its AI designer a **bundled capability guide** (`runtime/designer-capabilities.json`) containing current component roles, five grounded composition recipes, actual supported interactions and explicit unsupported/future features. The host still checks proposals against the 21-kind catalog and v2 JSON schemas; the guide does not add any executable capabilities.
+
+The target composition model is documented in [typed ports/events/layout](docs/20_COMPOSITION_CONTRACT.md), [safe external data connectors](docs/21_CONNECTOR_CONTRACT.md), and the [AI playbook](docs/22_AI_DESIGN_PLAYBOOK.md). Planned v3 one-way selectors, event-to-host actions, responsive layout tokens and future vetted read-only external adapters are **not implemented in current v2**. A credible AI-generated app requires real persisted data and verified action/dataflow, not a pretty screen of disconnected controls.
 
 ## Typed records and 21-component Qt palette
 

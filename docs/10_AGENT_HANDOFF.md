@@ -6,7 +6,7 @@
 
 The Foundation MVP (City Pulse → ChatGPT mutation → preview/apply → offline restart) has working code and one documented real-account Windows test. **Do not restart that implementation.** Finish its durability and clean-install gates, then deliver the Useful-app MVP: a user asks for a Task Manager, MUTYVA creates an independent local app with typed records, and a second AI request adds priority/due dates/filtering without losing tasks.
 
-**The single current task queue is [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md), starting at R0-02 (R0-01 passed CI on 2026-10-23).** Its R0–R4 ticket IDs, dependencies and acceptance gates supersede the old weather-first work order in this handoff. [01_MVP_SPEC.md](01_MVP_SPEC.md) remains the original **Foundation** MVP contract; do not silently replace its historical meaning. The Useful-app contract is in roadmap Slices 5–7.
+**The single current task queue is [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md), starting at R0-02/R0-03 and Qt 6.12 verification (R0-01 passed only historical Qt 6.8 CI).** Its R0–R4 ticket IDs, dependencies and acceptance gates supersede the old weather-first work order in this handoff. [01_MVP_SPEC.md](01_MVP_SPEC.md) remains the original **Foundation** MVP contract; do not silently replace its historical meaning. The Useful-app contract is in roadmap Slices 5–7.
 
 Historical evidence as of 2026-10-23 (Qt 6.8): [Qt/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) passed 65 tests, 0 failures, and 21 individual screenshots; R0-01 and the initial typed-records/Qt palette slice have passing Windows evidence. Do not infer Android support, schema v3 completion, recovery UI or multi-app creation from these results.
 
@@ -61,3 +61,11 @@ Report: files changed; build/test commands run; evidence/screenshot; passed/fail
 ## Qt baseline and CI credentials (2026-10-23)
 
 **Qt 6.12.x is mandatory** in CMake and for Windows CI; no 6.8 fallback. The public `aqtinstall` XML feed failed for Qt 6.12.0 MSVC, so the CI uses the official Qt installer. Its Qt Account credentials must be stored only as GitHub Actions repository secrets `QT_EMAIL` and `QT_PW`; never add them to tracked files, logs, AI requests or artifacts. Before accepting the Qt 6.12 gate, check the CI version verification, CMake, CTest and all 21 screenshot captures. Historical green Qt 6.8 runs are not sufficient for this acceptance.
+
+## AI composition handoff — new bounded workstream
+
+For design work, read [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md), [21_CONNECTOR_CONTRACT.md](21_CONNECTOR_CONTRACT.md), [22_AI_DESIGN_PLAYBOOK.md](22_AI_DESIGN_PLAYBOOK.md), `runtime/designer-capabilities.json` and `specs/*.schema.json`. `DesignerContext` supplies the bundled guide to real ChatGPT; it is **current-state capability metadata**, not authorization. Never implement v3-only fields inside a v2 declaration.
+
+**Order after R0 and R1 migration:** C1 one-way record selection → trusted text; C2 event → one host command; C3 responsive layout tokens in current containers; C4a normalize existing Open-Meteo snapshot to read-only ports; only then C4b vetted second public source, R2 app isolation and R3 ChatGPT create-app. Give users apps with working dataflow, not static prototypes.
+
+**Acceptance:** no fabricated widgets/actions/bindings, no unconstrained URLs, all changes previewed, no data lost on schema growth/definition rollback, no private rows in AI context, real Qt 6.12 MSVC CTest before green status.
