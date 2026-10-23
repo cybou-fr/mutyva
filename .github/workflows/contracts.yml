@@ -1,0 +1,27 @@
+name: Declarative and AI contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install schema validator
+        run: python -m pip install 'jsonschema>=4.23,<5' 'referencing>=0.35,<1'
+      - name: Validate catalog, AI recipes and component implementations
+        run: python tools/validate_palette.py
+      - name: Validate bundled examples and JSON Schema
+        run: python tools/validate_examples.py
+      - name: Check Python scripts parse
+        run: python -m compileall -q tools
