@@ -16,11 +16,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Qt 6.12 MSVC packages are distributed via Qt Online Installer.
+      # GitHub Actions secrets must contain a Qt Account login; never print them.
+      - name: Check Qt Account secrets
+        shell: pwsh
+        env:
+          QT_EMAIL: ${{ secrets.QT_EMAIL }}
+          QT_PW: ${{ secrets.QT_PW }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:QT_EMAIL) -or [string]::IsNullOrWhiteSpace($env:QT_PW)) {
+            throw "Qt 6.12 CI requires QT_EMAIL and QT_PW in GitHub Actions secrets. No Qt 6.8 fallback is allowed."
+          }
+
       - name: Install Qt 6.12
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.12.0'
           arch: win64_msvc2022_64
+          use-official: true
+          email: ${{ secrets.QT_EMAIL }}
+          pw: ${{ secrets.QT_PW }}
           cache: true
 
       - name: Verify required Qt version
