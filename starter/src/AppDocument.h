@@ -35,6 +35,7 @@ public:
     Q_INVOKABLE bool rollback();
     Q_INVOKABLE bool resetDemo();
     Q_INVOKABLE bool previewPaletteDemo();
+    Q_INVOKABLE bool previewTaskManagerDemo();
     Q_INVOKABLE bool updateWidgetProperty(const QString &id, const QString &path, const QVariant &value);
     Q_INVOKABLE bool moveInto(const QString &id, const QString &parent);
     Q_INVOKABLE bool previewMutation(const QString &json);

@@ -11,6 +11,7 @@ qt_add_library(mutyva-core STATIC
     starter/src/InteractionState.cpp starter/src/InteractionState.h
     starter/src/BrandIdentity.cpp starter/src/BrandIdentity.h
     starter/src/LocalDataStore.cpp starter/src/LocalDataStore.h
+    starter/src/RecordStore.cpp starter/src/RecordStore.h
     starter/src/SiwcProtocol.cpp starter/src/SiwcProtocol.h
     starter/src/ChatSession.cpp starter/src/ChatSession.h
     starter/src/AiResponseStream.cpp starter/src/AiResponseStream.h
@@ -22,7 +23,7 @@ qt_add_resources(mutyva-core "runtime_data" PREFIX "/" FILES
     specs/app.schema.json specs/mutation.schema.json
     examples/city-pulse.mutyva.json examples/mutations/add-humidity-card.json
     runtime/component-catalog.json runtime/designer-rules.txt specs/designer-response.schema.json
-    specs/app-v1.schema.json specs/mutation-v1.schema.json examples/general-workspace.mutyva.json
+    specs/app-v1.schema.json specs/mutation-v1.schema.json examples/general-workspace.mutyva.json examples/task-manager.mutyva.json
     branding/exports/mutyva-icon.png branding/exports/mutyva-logo.png branding/exports/mutyva-symbol.png branding/palette.json
 )
 qt_add_executable(mutyva-demo
@@ -35,12 +36,13 @@ set_source_files_properties(starter/qml/WidgetHost.qml PROPERTIES QT_RESOURCE_AL
 set_source_files_properties(starter/qml/DesignerPanel.qml PROPERTIES QT_RESOURCE_ALIAS "DesignerPanel.qml")
 set_source_files_properties(starter/qml/DesignerContextPanel.qml PROPERTIES QT_RESOURCE_ALIAS "DesignerContextPanel.qml")
 set_source_files_properties(starter/qml/GeneralWidget.qml PROPERTIES QT_RESOURCE_ALIAS "GeneralWidget.qml")
+set_source_files_properties(starter/qml/RecordWidget.qml PROPERTIES QT_RESOURCE_ALIAS "RecordWidget.qml")
 set_source_files_properties(starter/qml/IdentityDialog.qml PROPERTIES QT_RESOURCE_ALIAS "IdentityDialog.qml")
 set_source_files_properties(starter/qml/ChatPanel.qml PROPERTIES QT_RESOURCE_ALIAS "ChatPanel.qml")
 qt_add_qml_module(mutyva-demo
     URI Mutyva.Demo
     VERSION 1.0
-    QML_FILES starter/qml/ChatPanel.qml starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml starter/qml/GeneralWidget.qml starter/qml/IdentityDialog.qml
+    QML_FILES starter/qml/ChatPanel.qml starter/qml/Main.qml starter/qml/WidgetHost.qml starter/qml/DesignerPanel.qml starter/qml/DesignerContextPanel.qml starter/qml/GeneralWidget.qml starter/qml/RecordWidget.qml starter/qml/IdentityDialog.qml
 )
 include(cmake/Branding.cmake)
 target_compile_definitions(mutyva-demo PRIVATE MUTYVA_VERSION="${PROJECT_VERSION}")
@@ -58,6 +60,10 @@ set_target_properties(mutyva-demo PROPERTIES
 )
 include(CTest)
 if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME palette-contract COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_palette.py")
+    endif()
     find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
     qt_add_executable(runtime-tests tests/RuntimeTest.cpp starter/src/WeatherService.cpp starter/src/WeatherService.h)
     target_link_libraries(runtime-tests PRIVATE mutyva-core Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Network)

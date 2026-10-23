@@ -944,10 +944,147 @@ private slots:
         QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
     }
 
+    void typedRecordCrudAndMigration() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        const auto definition = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/task-manager.mutyva.json"));
+        QString error;
+        QVERIFY2(DeclarativeRuntime::validateDocument(definition, error), qPrintable(error));
+        QVERIFY2(document.previewDocument(json(definition)), qPrintable(document.lastError()));
+        QVERIFY(document.applyPreview());
+        InteractionState first(&document), second(&document);
+        QVERIFY(first.ready()); QVERIFY(second.ready());
+        QCOMPARE(first.modelFields("tasks").size(), 4);
+        QVERIFY(first.createRecord("taskForm", {{"title","Первое"},{"priority",2},{"done",false}}));
+        QVERIFY(!second.createRecord("taskForm", {{"title","Конфликт"}}));
+        QVERIFY(second.reload());
+        QVERIFY(second.createRecord("taskForm", {{"title","Второе"},{"priority",9},{"done",false}}));
+        QVERIFY(first.reload());
+        auto entries = first.records("taskList");
+        QCOMPARE(entries.size(), 2);
+        QCOMPARE(entries.first().toMap().value("title").toString(), QString("Второе"));
+        const auto id = entries.first().toMap().value("_id").toString();
+        QVERIFY(first.selectRecord("taskList", id));
+        QCOMPARE(first.selectedRecord("tasks").value("title").toString(), QString("Второе"));
+        QVERIFY(!first.createRecord("taskForm", {{"title",""},{"priority",1}}));
+        QVERIFY(!first.createRecord("taskForm", {{"title","Bad"},{"unknown",1}}));
+        QVERIFY(first.updateRecord("taskForm", id, {{"title","Второе"},{"priority",9},{"done",true}}));
+        QCOMPARE(first.records("taskList").size(), 1); // Filter incomplete tasks only.
+        const auto remainingId = first.records("taskList").first().toMap().value("_id").toString();
+        QVERIFY(document.prepareDesignerContext("Добавь поле"));
+        QVERIFY(!document.designerContextJson().contains("Первое"));
+        QJsonObject addedField{{"id","category"},{"label","Категория"},{"type","text"},{"default","Общее"}};
+        QJsonObject addFieldOp{{"op","addField"},{"modelId","tasks"},{"field",addedField}};
+        QJsonObject mutation{{"schemaVersion",2},{"appId","official.city-pulse"},
+            {"operations",QJsonArray{addFieldOp}}};
+        QVERIFY2(document.previewMutation(json(mutation)), qPrintable(document.lastError()));
+        QVERIFY(!first.createRecord("taskForm", {{"title","Blocked in preview"}}));
+        QVERIFY(document.applyPreview());
+        QCOMPARE(first.modelFields("tasks").size(), 5);
+        QCOMPARE(first.records("taskList").first().toMap().value("_id").toString(), remainingId);
+        auto incompatible = QJsonDocument::fromJson(document.documentJson().toUtf8()).object();
+        auto models = incompatible.value("models").toArray();
+        auto changed = models[0].toObject();
+        auto fields = changed.value("fields").toArray();
+        fields.removeAt(0); changed.insert("fields", fields); models[0] = changed;
+        incompatible.insert("models", models);
+        QVERIFY(!document.previewDocument(json(incompatible)));
+        QVERIFY(first.deleteRecord("taskList", remainingId));
+        AppDocument reopened(nullptr, folder.path());
+        InteractionState again(&reopened);
+        QVERIFY(again.ready());
+        QCOMPARE(again.modelFields("tasks").size(), 5);
+        QVERIFY(again.records("taskList").isEmpty());
+        QVERIFY(again.createRecord("taskForm", {{"title","После перезапуска"}}));
+        QCOMPARE(again.records("taskList").size(), 1);
+    }
+
+    void paletteRecordQtRendering() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        const auto task = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/task-manager.mutyva.json"));
+        QVERIFY(document.previewDocument(json(task)));
+        QVERIFY(document.applyPreview());
+        InteractionState interaction(&document);
+        WeatherService weather;
+        BrandIdentity branding(false);
+        ChatSession chatSession;
+        AiChat aiChat(&document, &chatSession);
+        QQmlApplicationEngine engine;
+        QStringList warnings;
+        connect(&engine, &QQmlEngine::warnings, this, [&warnings](const QList<QQmlError> &errors) {
+            for (const auto &e : errors) warnings << e.toString();
+        });
+        engine.rootContext()->setContextProperty("appDocument", &document);
+        engine.rootContext()->setContextProperty("weatherService", &weather);
+        engine.rootContext()->setContextProperty("interactionState", &interaction);
+        engine.rootContext()->setContextProperty("brandIdentity", &branding);
+        engine.rootContext()->setContextProperty("chatSession", &chatSession);
+        engine.rootContext()->setContextProperty("aiChat", &aiChat);
+        engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
+        QVERIFY2(!engine.rootObjects().isEmpty(), qPrintable(warnings.join('\n')));
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+        QVERIFY(window);
+        QTRY_VERIFY(findItem(window->contentItem(), "recordSubmit-taskForm"));
+        window->setWidth(360);
+        QTest::qWait(100);
+        QVERIFY(findItem(window->contentItem(), "recordSubmit-taskForm")->width() > 0);
+        QVERIFY2(warnings.isEmpty(), qPrintable(warnings.join('\n')));
+    }
+
+    void paletteCaptureScreenshots() {
+        const auto directory = qEnvironmentVariable("MUTYVA_PALETTE_CAPTURE_DIR");
+        if (directory.isEmpty()) QSKIP("Opt-in palette screenshot capture; set MUTYVA_PALETTE_CAPTURE_DIR");
+        QVERIFY(QDir().mkpath(directory));
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        const QJsonObject titleField{{"id","title"},{"label","Title"},{"type","text"},{"default",""}};
+        const QJsonObject tasksModel{{"id","tasks"},{"title","Tasks"},{"fields",QJsonArray{titleField}}};
+        const QJsonArray models{tasksModel};
+        auto first = baseline();
+        first.insert("models", models);
+        QVERIFY(document.previewDocument(json(first)));
+        QVERIFY(document.applyPreview());
+        InteractionState interaction(&document);
+        WeatherService weather;
+        BrandIdentity branding(false);
+        ChatSession chatSession;
+        AiChat aiChat(&document, &chatSession);
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("appDocument", &document);
+        engine.rootContext()->setContextProperty("weatherService", &weather);
+        engine.rootContext()->setContextProperty("interactionState", &interaction);
+        engine.rootContext()->setContextProperty("brandIdentity", &branding);
+        engine.rootContext()->setContextProperty("chatSession", &chatSession);
+        engine.rootContext()->setContextProperty("aiChat", &aiChat);
+        engine.load(QUrl::fromLocalFile(QStringLiteral(MUTYVA_SOURCE_DIR "/starter/qml/Main.qml")));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+        QVERIFY(window);
+        window->resize(950, 720);
+        for (const auto &entry : DeclarativeRuntime::catalog()) {
+            const auto spec = entry.toMap();
+            const auto kind = spec.value("kind").toString();
+            QJsonObject widget{{"id", "galleryItem"}, {"kind", kind}, {"title", spec.value("title").toString()}};
+            const auto defaults = QJsonObject::fromVariantMap(spec.value("defaults").toMap());
+            for (auto it = defaults.begin(); it != defaults.end(); ++it) widget.insert(it.key(), it.value());
+            if (kind == "record-form" || kind == "record-list") widget.insert("model", "tasks");
+            auto sample = baseline();
+            sample.insert("models", models);
+            sample.insert("widgets", QJsonArray{widget});
+            QVERIFY2(document.previewDocument(json(sample)), qPrintable(document.lastError()));
+            QVERIFY2(document.applyPreview(), qPrintable(document.lastError()));
+            QTest::qWait(140);
+            const auto image = window->grabWindow();
+            QVERIFY2(!image.isNull(), qPrintable(kind));
+            QVERIFY2(image.save(directory + "/" + kind + ".png"), qPrintable(kind));
+        }
+    }
+
     void bundledSchemasAndCatalog() {
         QString error;
         QVERIFY2(DeclarativeRuntime::validateDocument(baseline(), error), qPrintable(error));
-        QCOMPARE(DeclarativeRuntime::catalog().size(), 12);
+        QCOMPARE(DeclarativeRuntime::catalog().size(), 21);
         const auto widgetSchema = DeclarativeRuntime::bundledSchema("app").value("$defs").toObject()
                                       .value("widget").toObject().value("properties").toObject();
         QSet<QString> kinds;
@@ -961,7 +1098,15 @@ private slots:
             QVERIFY(!descriptor.value("description").toString().isEmpty());
             auto doc = baseline();
             auto widgets = doc.value("widgets").toArray();
-            widgets.append(QJsonObject{{"id", "testWidget"}, {"kind", entry.toMap().value("kind").toString()}});
+            auto widget = QJsonObject{{"id", "testWidget"}, {"kind", kind}};
+            if (kind == "record-form" || kind == "record-list") {
+                widget.insert("model", "tasks");
+                const QJsonObject field{{"id","title"},{"label","Title"},
+                    {"type","text"},{"required",true},{"default",""}};
+                const QJsonObject dataModel{{"id","tasks"},{"title","Tasks"},{"fields",QJsonArray{field}}};
+                doc.insert("models", QJsonArray{dataModel});
+            }
+            widgets.append(widget);
             doc.insert("widgets", widgets);
             QVERIFY2(DeclarativeRuntime::validateDocument(doc, error), qPrintable(error));
         }
@@ -981,7 +1126,7 @@ private slots:
         QCOMPARE(context.value("currentApplication").toObject(), doc);
         QCOMPARE(context.value("userRequest").toString(), QString::fromUtf8(request));
         QCOMPARE(context.value("baseGeneration").toInt(), 7);
-        QCOMPARE(context.value("installedComponentCatalog").toArray().size(), 12);
+        QCOMPARE(context.value("installedComponentCatalog").toArray().size(), 21);
         QVERIFY(context.contains("designerResponseSchema"));
         QVERIFY(!context.contains("weatherReadings"));
         QVERIFY(!context.contains("history"));

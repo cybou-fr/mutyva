@@ -24,7 +24,7 @@ bool DesignerContext::build(const QJsonObject &document, int generation, const Q
         {"productConcept", QJsonObject{
             {"name", "MUTYVA"},
             {"purpose", "Локальная среда приложений из проверенных компонентов. AI проектирует; Qt исполняет сохранённую декларацию без AI."},
-            {"currentScope", "Пять компонентов погоды и семь общих компонентов. Локальные значения ввода и списков хранятся отдельно в SQLite и не входят в контекст."},
+            {"currentScope", "Доверенный каталог содержит элементы интерфейса и локальные типизированные модели. Записи и значения не входят в AI-контекст."},
             {"layout", "flat-widget-list-with-parent-references; card/stack/row containers; max depth 8"}}},
         {"installedComponentCatalog", QJsonArray::fromVariantList(DeclarativeRuntime::catalog())},
         {"currentApplication", document},

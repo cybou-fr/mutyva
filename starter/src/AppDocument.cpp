@@ -235,6 +235,25 @@ bool AppDocument::stage(const QJsonObject &proposed, const QString &summary) {
     if (candidate.value("permissions") != m_document.value("permissions") ||
         candidate.value("dataSources") != m_document.value("dataSources"))
         return reject("В этом этапе можно менять интерфейс; источники и разрешения должны совпадать");
+    // Existing record models/fields are immutable. Only additive fields with defaults
+    // or optional fields may be proposed; runtime records remain untouched.
+    QMap<QString, QJsonObject> newModels;
+    for (const auto &entry : candidate.value("models").toArray())
+        newModels.insert(entry.toObject().value("id").toString(), entry.toObject());
+    for (const auto &entry : m_document.value("models").toArray()) {
+        const auto oldModel = entry.toObject();
+        const auto id = oldModel.value("id").toString();
+        if (!newModels.contains(id)) return reject("Удаление модели с пользовательскими данными запрещено");
+        QMap<QString, QJsonObject> nextFields;
+        for (const auto &f : newModels[id].value("fields").toArray())
+            nextFields.insert(f.toObject().value("id").toString(), f.toObject());
+        for (const auto &f : oldModel.value("fields").toArray()) {
+            const auto field = f.toObject();
+            const auto key = field.value("id").toString();
+            if (!nextFields.contains(key) || nextFields[key] != field)
+                return reject("Удаление или изменение существующего поля " + key + " запрещено");
+        }
+    }
     if (candidate == m_document) return reject("Изменений нет");
     QStringList changes;
     QMap<QString, QJsonObject> before, after;
@@ -265,6 +284,7 @@ bool AppDocument::stage(const QJsonObject &proposed, const QString &summary) {
     if (oldOrder != newOrder) changes << "Порядок: " + newOrder.join(" → ");
     if (candidate.value("name") != m_document.value("name")) changes << "Имя: " + candidate.value("name").toString();
     if (candidate.value("description") != m_document.value("description")) changes << "Описание приложения изменено";
+    if (candidate.value("models") != m_document.value("models")) changes << "Модели данных: добавлены новые модели или поля (записи сохраняются)";
     m_candidate = candidate;
     m_summary = summary + "\n" + changes.join('\n');
     m_error.clear();
@@ -385,6 +405,13 @@ bool AppDocument::previewPaletteDemo() {
     QJsonObject demo;
     if (!loadDocument(":/examples/general-workspace.mutyva.json", demo)) return reject(m_error);
     return stage(demo, "Открыть пример общей палитры: заметки и погода");
+}
+
+bool AppDocument::previewTaskManagerDemo() {
+    cancelPreview();
+    QJsonObject demo;
+    if (!loadDocument(":/examples/task-manager.mutyva.json", demo)) return reject(m_error);
+    return stage(demo, "Открыть пример менеджера задач с локальными типизированными данными");
 }
 
 bool AppDocument::prepareDesignerContext(const QString &request) {

@@ -24,9 +24,16 @@ Loader {
         case "air-card": return airCard;
         case "humidity-card": return humidityCard;
         case "text": case "card": case "stack": case "row":
-        case "button": case "input": case "list": return generalWidget;
+        case "button": case "input": case "list":
+        case "checkbox": case "select": case "date-picker": case "dialog":
+        case "tabs": case "image": case "icon": return generalWidget;
+        case "record-form": case "record-list": return recordWidget;
         default: return unknownCard;
         }
+    }
+    Component {
+        id: recordWidget
+        RecordWidget { definition: host.definition }
     }
     Component {
         id: generalWidget

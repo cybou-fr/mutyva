@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "layout": "parent-referenced-containers",
   "components": [
     {
@@ -223,6 +223,174 @@
       ],
       "defaults": {
         "items": []
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "record-form",
+      "title": "Форма записей",
+      "description": "Создаёт и редактирует типизированные записи локальной модели. Данные хранятся отдельно от истории интерфейса.",
+      "actions": [
+        "create-record",
+        "update-record"
+      ],
+      "propertyNames": [
+        "title",
+        "model",
+        "style"
+      ]
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "record-list",
+      "title": "Список записей",
+      "description": "Просмотр, выбор и удаление записей модели; необязательные типизированные filter и sort.",
+      "actions": [
+        "select-record",
+        "delete-record"
+      ],
+      "propertyNames": [
+        "title",
+        "model",
+        "filter",
+        "sort",
+        "style"
+      ]
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "checkbox",
+      "title": "Флажок",
+      "description": "Логическое локальное значение true/false, хранится в SQLite.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "value",
+        "style"
+      ],
+      "defaults": {
+        "value": "false"
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "select",
+      "title": "Выбор",
+      "description": "Выбор одной строки из до 20 предопределённых вариантов.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "value",
+        "options",
+        "style"
+      ],
+      "defaults": {
+        "options": [
+          "Первый",
+          "Второй"
+        ],
+        "value": "Первый"
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "date-picker",
+      "title": "Дата",
+      "description": "Локальное ISO-дата YYYY-MM-DD, редактируется с проверкой.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "value",
+        "style"
+      ],
+      "defaults": {
+        "value": ""
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "dialog",
+      "title": "Диалог",
+      "description": "Кнопка открывает доверенный Qt Quick Dialog с текстом; без произвольных обработчиков.",
+      "actions": [
+        "open-dialog"
+      ],
+      "propertyNames": [
+        "title",
+        "message",
+        "style"
+      ],
+      "defaults": {
+        "message": "Информация"
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": true,
+      "kind": "tabs",
+      "title": "Вкладки",
+      "description": "Контейнер: каждый прямой ребёнок образует отдельную вкладку.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "style"
+      ],
+      "defaults": {}
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "image",
+      "title": "Изображение",
+      "description": "Только встроенные ресурсы бренда. Произвольные URL и файловые пути запрещены.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "source",
+        "style"
+      ],
+      "defaults": {
+        "source": "mutyva-symbol"
+      }
+    },
+    {
+      "source": "",
+      "bindings": [],
+      "permissions": [],
+      "container": false,
+      "kind": "icon",
+      "title": "Иконка",
+      "description": "Безопасный набор символов, не требует сторонних загрузок.",
+      "actions": [],
+      "propertyNames": [
+        "title",
+        "icon",
+        "style"
+      ],
+      "defaults": {
+        "icon": "star"
       }
     }
   ]

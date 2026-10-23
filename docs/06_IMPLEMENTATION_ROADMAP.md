@@ -95,6 +95,12 @@ General palette v2 is implemented with parent containers, append-only v1 migrati
 
 **Acceptance:** a user without coding skill makes a persistent GUI feature by describing it in Russian.
 
+## Active implementation note — palette and typed records (2026-10-23)
+
+The source now contains an **experimental additive v2 typed-record contract** (RecordStore with app/model/record identity, record form/list, basic filters and sorting), nine additional trusted UI kinds, a Task Manager demo, palette schema/renderer validation and opt-in per-kind screenshot capture. This is deliberately backwards-compatible with v1/v2 snapshots; it is **not yet the planned independent schema v3**. Consequently **R1-01 through R1-07 remain unaccepted until Qt/MSVC build, offline CTest, recovery review and U-MVP integration are demonstrated**. See [19_COMPONENT_REFERENCE.md](19_COMPONENT_REFERENCE.md) and the task example. R2 and R3 remain entirely separate and not implemented.
+
+**Explicit three-step palette order:** (1) stabilize records/CRUD and data migration gates, (2) verify the nine new Qt controls and styling/behavior on narrow and desktop layouts, (3) verify catalog/schema/QML/reference and capture actual screenshots on the Qt kit. Do not expand beyond the 21 kinds until these pass.
+
 ## Slice 5 / R1 — typed local data and practical UI actions
 
 **Why next:** today general widgets persist input/list values, but the host has no generic record collections, record relations, CRUD forms or filters. Adding more weather cards does not prove the product promise.

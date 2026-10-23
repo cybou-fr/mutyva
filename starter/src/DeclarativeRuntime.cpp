@@ -5,6 +5,8 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QMap>
+#include <QtMath>
+#include <QDate>
 
 namespace {
 QJsonObject schema(const QString &name) {
@@ -42,7 +44,10 @@ bool check(const QJsonValue &value, const QJsonObject &rule, const QJsonObject &
     }
     const QString type = rule.value("type").toString();
     if ((!type.isEmpty()) && !((type == "object" && value.isObject()) ||
-        (type == "array" && value.isArray()) || (type == "string" && value.isString())))
+        (type == "array" && value.isArray()) || (type == "string" && value.isString()) ||
+        (type == "boolean" && value.isBool()) ||
+        (type == "number" && value.isDouble()) ||
+        (type == "integer" && value.isDouble() && value.toDouble() == qFloor(value.toDouble()))))
         return fail(error, path, "Ожидается " + type);
     if (rule.contains("const") && value != rule.value("const"))
         return fail(error, path, "Недопустимое значение");
@@ -56,6 +61,9 @@ bool check(const QJsonValue &value, const QJsonObject &rule, const QJsonObject &
         if (rule.contains("pattern") && !QRegularExpression(rule.value("pattern").toString()).match(text).hasMatch())
             return fail(error, path, "Недопустимый идентификатор");
     }
+    if (value.isDouble() && ((rule.contains("minimum") && value.toDouble() < rule.value("minimum").toDouble()) ||
+        (rule.contains("maximum") && value.toDouble() > rule.value("maximum").toDouble())))
+        return fail(error, path, "Число за пределами диапазона");
     if (value.isObject()) {
         const auto obj = value.toObject();
         for (const auto &key : rule.value("required").toArray())
@@ -145,6 +153,33 @@ bool DeclarativeRuntime::validateDocument(const QJsonObject &document, QString &
             return fail(error, "$.permissions", "Разрешение не одобрено");
     if (!sources.isEmpty() && !permissions.contains("network:*.open-meteo.com"))
         return fail(error, "$.permissions", "Для Open-Meteo требуется разрешение сети");
+    QMap<QString, QJsonObject> models;
+    const QRegularExpression isoDate("^\\d{4}-\\d{2}-\\d{2}$");
+    auto validValue = [&](const QString &type, const QJsonValue &value) {
+        if (type == "text") return value.isString() && value.toString().size() <= 1000;
+        if (type == "boolean") return value.isBool();
+        if (type == "integer") return value.isDouble() && value.toDouble() == qFloor(value.toDouble());
+        if (type == "date") return value.isString() && isoDate.match(value.toString()).hasMatch() &&
+            QDate::fromString(value.toString(), Qt::ISODate).isValid();
+        return false;
+    };
+    for (const auto &item : document.value("models").toArray()) {
+        const auto model = item.toObject();
+        const auto id = model.value("id").toString();
+        if (models.contains(id)) return fail(error, "$.models", "Повтор модели " + id);
+        models.insert(id, model);
+        QSet<QString> fieldIds;
+        for (const auto &entry : model.value("fields").toArray()) {
+            const auto field = entry.toObject();
+            const auto fieldId = field.value("id").toString();
+            if (fieldIds.contains(fieldId)) return fail(error, "$.models." + id, "Повтор поля " + fieldId);
+            fieldIds.insert(fieldId);
+            if (field.contains("default") && !validValue(field.value("type").toString(), field.value("default")))
+                return fail(error, "$.models." + id + "." + fieldId, "Недопустимое значение по умолчанию");
+            if (field.value("required").toBool() && !field.contains("default"))
+                return fail(error, "$.models." + id + "." + fieldId, "Обязательное поле требует default для безопасных миграций");
+        }
+    }
     QSet<QString> ids;
     QMap<QString, QJsonObject> byId;
     QSet<QString> containers;
@@ -187,6 +222,35 @@ bool DeclarativeRuntime::validateDocument(const QJsonObject &document, QString &
             if (visited.size() > 8) return fail(error, it.key(), "Превышена глубина 8 уровней");
             parent = byId.value(parent).value("parent").toString();
         }
+        const auto kind = it.value().value("kind").toString();
+        if (kind == "record-list" || kind == "record-form") {
+            const auto modelId = it.value().value("model").toString();
+            if (!models.contains(modelId)) return fail(error, it.key(), "Неизвестная модель " + modelId);
+            const auto fields = models.value(modelId).value("fields").toArray();
+            auto fieldType = [&](const QString &fieldId) {
+                for (const auto &entry : fields)
+                    if (entry.toObject().value("id").toString() == fieldId)
+                        return entry.toObject().value("type").toString();
+                return QString();
+            };
+            for (const auto &key : {"filter", "sort"}) if (it.value().contains(key)) {
+                const auto ref = it.value().value(key).toObject();
+                const auto type = fieldType(ref.value("field").toString());
+                if (type.isEmpty()) return fail(error, it.key(), "Фильтр/сортировка: поле отсутствует");
+                if (QString(key) == "filter" && (!validValue(type, ref.value("value")) ||
+                    (ref.value("op") != QJsonValue("equals") && type != "date" && type != "integer")))
+                    return fail(error, it.key(), "Неверный тип или оператор фильтра");
+            }
+        }
+        if (kind == "select" && it.value().contains("value") &&
+            !it.value().value("options").toArray().contains(it.value().value("value")))
+            return fail(error, it.key(), "Выбранное значение отсутствует в options");
+        if (kind == "checkbox" && it.value().contains("value") &&
+            it.value().value("value") != QJsonValue("true") && it.value().value("value") != QJsonValue("false"))
+            return fail(error, it.key(), "Checkbox принимает только true/false");
+        if (kind == "date-picker" && !it.value().value("value").toString().isEmpty() &&
+            !QDate::fromString(it.value().value("value").toString(), Qt::ISODate).isValid())
+            return fail(error, it.key(), "Недопустимая ISO-дата");
         const auto action = it.value().value("action").toObject();
         if (action.isEmpty()) continue;
         const auto target = action.value("target").toString();
@@ -208,7 +272,39 @@ bool DeclarativeRuntime::mutate(const QJsonObject &document, const QJsonObject &
     if (proposal.value("appId") != document.value("id"))
         return fail(error, "$.appId", "Мутация предназначена другому приложению");
     auto widgets = document.value("widgets").toArray();
+    auto models = document.value("models").toArray();
     for (const auto &entry : proposal.value("operations").toArray()) {
+        const auto operation = entry.toObject();
+        const auto action = operation.value("op").toString();
+        if (action == "addModel") {
+            const auto incoming = operation.value("model").toObject();
+            bool duplicate = false;
+            for (const auto &existing : models)
+                if (existing.toObject().value("id") == incoming.value("id")) duplicate = true;
+            if (duplicate) return fail(error, "addModel", "Модель уже существует");
+            models.append(incoming);
+            continue;
+        }
+        if (action == "addField") {
+            const auto modelId = operation.value("modelId").toString();
+            const auto field = operation.value("field").toObject();
+            bool found = false;
+            for (qsizetype i = 0; i < models.size(); ++i) {
+                auto model = models[i].toObject();
+                if (model.value("id").toString() != modelId) continue;
+                found = true;
+                auto fields = model.value("fields").toArray();
+                for (const auto &existing : fields)
+                    if (existing.toObject().value("id") == field.value("id"))
+                        return fail(error, "addField", "Поле уже существует");
+                fields.append(field);
+                model.insert("fields", fields);
+                models[i] = model;
+                break;
+            }
+            if (!found) return fail(error, "addField", "Модель не найдена");
+            continue;
+        }
         const auto op = entry.toObject();
         const auto name = op.value("op").toString();
         const auto id = op.value("id").toString();
@@ -267,6 +363,7 @@ bool DeclarativeRuntime::mutate(const QJsonObject &document, const QJsonObject &
     QJsonObject next = document;
     next.insert("schemaVersion", 2);
     next.insert("widgets", widgets);
+    if (document.contains("models") || !models.isEmpty()) next.insert("models", models);
     if (!validateDocument(next, error)) return false;
     candidate = next; // Only publish a complete, validated result.
     return true;

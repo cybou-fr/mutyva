@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "id": "official.city-pulse",
+  "name": "Мои задачи",
+  "description": "Демо типизированных локальных записей внутри City Pulse; унаследованы исходные объявления Open-Meteo. CRUD-записи не отправляются в AI.",
+  "models": [
+    {
+      "id": "tasks",
+      "title": "Задачи",
+      "fields": [
+        {
+          "id": "title",
+          "label": "Задача",
+          "type": "text",
+          "required": true,
+          "default": ""
+        },
+        {
+          "id": "done",
+          "label": "Выполнено",
+          "type": "boolean",
+          "default": false
+        },
+        {
+          "id": "priority",
+          "label": "Приоритет",
+          "type": "integer",
+          "default": 1
+        },
+        {
+          "id": "dueDate",
+          "label": "Срок",
+          "type": "date"
+        }
+      ]
+    }
+  ],
+  "widgets": [
+    {
+      "id": "taskHeading",
+      "kind": "text",
+      "title": "Мои задачи",
+      "text": "Список задач работает без AI и без интернета.",
+      "style": {
+        "tone": "accent"
+      }
+    },
+    {
+      "id": "taskForm",
+      "kind": "record-form",
+      "model": "tasks",
+      "title": "Добавить или изменить задачу"
+    },
+    {
+      "id": "taskList",
+      "kind": "record-list",
+      "model": "tasks",
+      "title": "Незавершённые задачи",
+      "filter": {
+        "field": "done",
+        "op": "equals",
+        "value": false
+      },
+      "sort": {
+        "field": "priority",
+        "descending": true
+      }
+    },
+    {
+      "id": "statusTabs",
+      "kind": "tabs",
+      "title": "Палитра"
+    },
+    {
+      "id": "infoCard",
+      "kind": "card",
+      "parent": "statusTabs",
+      "title": "Информация",
+      "style": {
+        "tone": "accent",
+        "padding": 16
+      }
+    },
+    {
+      "id": "infoText",
+      "kind": "text",
+      "parent": "infoCard",
+      "text": "Кнопка и диалог не исполняют произвольный код."
+    },
+    {
+      "id": "infoDialog",
+      "kind": "dialog",
+      "parent": "infoCard",
+      "title": "О данных",
+      "message": "Записи хранятся локально в SQLite."
+    },
+    {
+      "id": "toolsCard",
+      "kind": "card",
+      "parent": "statusTabs",
+      "title": "Инструменты"
+    },
+    {
+      "id": "taskFlag",
+      "kind": "checkbox",
+      "parent": "toolsCard",
+      "title": "Локальный флажок",
+      "value": "false"
+    },
+    {
+      "id": "priorityChoice",
+      "kind": "select",
+      "parent": "toolsCard",
+      "title": "Вид",
+      "options": [
+        "Все",
+        "Активные",
+        "Готовые"
+      ],
+      "value": "Все"
+    },
+    {
+      "id": "dayChoice",
+      "kind": "date-picker",
+      "parent": "toolsCard",
+      "title": "Дата",
+      "value": ""
+    },
+    {
+      "id": "taskIcon",
+      "kind": "icon",
+      "parent": "toolsCard",
+      "title": "Звезда",
+      "icon": "star"
+    },
+    {
+      "id": "brandImage",
+      "kind": "image",
+      "parent": "toolsCard",
+      "title": "Символ MUTYVA",
+      "source": "mutyva-symbol"
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "geocoding",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "weather",
+      "kind": "rest",
+      "provider": "open-meteo"
+    },
+    {
+      "id": "airQuality",
+      "kind": "rest",
+      "provider": "open-meteo"
+    }
+  ],
+  "permissions": [
+    "network:*.open-meteo.com"
+  ]
+}

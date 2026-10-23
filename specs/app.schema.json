@@ -50,6 +50,13 @@
         "type": "string",
         "maxLength": 128
       }
+    },
+    "models": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/model"
+      }
     }
   },
   "additionalProperties": false,
@@ -78,7 +85,16 @@
             "row",
             "button",
             "input",
-            "list"
+            "list",
+            "record-form",
+            "record-list",
+            "checkbox",
+            "select",
+            "date-picker",
+            "dialog",
+            "tabs",
+            "image",
+            "icon"
           ]
         },
         "title": {
@@ -160,6 +176,100 @@
           "minLength": 2,
           "maxLength": 100,
           "pattern": "\\S"
+        },
+        "model": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,63}$"
+        },
+        "filter": {
+          "type": "object",
+          "required": [
+            "field",
+            "op",
+            "value"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,63}$"
+            },
+            "op": {
+              "enum": [
+                "equals",
+                "before",
+                "after"
+              ]
+            },
+            "value": {}
+          },
+          "additionalProperties": false
+        },
+        "sort": {
+          "type": "object",
+          "required": [
+            "field"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,63}$"
+            },
+            "descending": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "source": {
+          "enum": [
+            "mutyva-logo",
+            "mutyva-icon",
+            "mutyva-symbol"
+          ]
+        },
+        "icon": {
+          "enum": [
+            "check",
+            "star",
+            "heart",
+            "info",
+            "warning",
+            "folder",
+            "calendar"
+          ]
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "tone": {
+              "enum": [
+                "neutral",
+                "accent",
+                "danger"
+              ]
+            },
+            "padding": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 32
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -187,6 +297,66 @@
             "open-meteo"
           ]
         }
+      },
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "fields"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "field": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{1,63}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "type": {
+          "enum": [
+            "text",
+            "integer",
+            "boolean",
+            "date"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {}
       },
       "additionalProperties": false
     }

@@ -84,7 +84,15 @@
                   "placeholder",
                   "items",
                   "action",
-                  "defaultCity"
+                  "defaultCity",
+                  "style",
+                  "model",
+                  "filter",
+                  "sort",
+                  "options",
+                  "message",
+                  "source",
+                  "icon"
                 ]
               },
               "value": {}
@@ -111,6 +119,42 @@
               "parent": {
                 "type": "string",
                 "maxLength": 64
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "model"
+            ],
+            "properties": {
+              "op": {
+                "const": "addModel"
+              },
+              "model": {
+                "$ref": "app.schema.json#/$defs/model"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "op",
+              "modelId",
+              "field"
+            ],
+            "properties": {
+              "op": {
+                "const": "addField"
+              },
+              "modelId": {
+                "type": "string"
+              },
+              "field": {
+                "$ref": "app.schema.json#/$defs/field"
               }
             },
             "additionalProperties": false

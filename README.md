@@ -37,9 +37,9 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `starter/` + root `CMakeLists.txt` | Qt 6 editor with live APIs, schema-checked documents, four mutation operations and preview |
 | `tests/RuntimeTest.cpp` | Qt tests for validation, mutation atomicity, preview/cancel, restart and QML rendering |
 | `runtime/` + `docs/11_AI_DESIGN_CONTRACT.md` | Installed palette, designer rules, inspectable context and response contract (local only) |
-| `docs/12_GENERAL_PALETTE.md` + `examples/general-workspace.mutyva.json` | Seven general components, nested v2 layouts and an interactive Notes example |
+| `docs/12_GENERAL_PALETTE.md` + `docs/19_COMPONENT_REFERENCE.md` | 21 allowlisted Qt component kinds, examples and checked palette contracts |
 | `docs/14_CHAT_FIRST_UX.md` + `docs/15_AI_CONNECTION.md` | Primary chat UX, Windows AI integration and honest verification limits |
-| `docs/13_LOCAL_DATA.md` | Persistent app-scoped SQLite data, transactional input/list actions and conflict recovery |
+| `docs/13_LOCAL_DATA.md` | Persistent SQLite input/list values plus app-scoped typed records and CRUD |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
 | `tools/validate_examples.py` | Standard-library example checks |
 
@@ -48,6 +48,12 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authoritative work queue. It keeps the original **Foundation MVP** (City Pulse + safe AI mutation + offline restart) distinct from the next **Useful-app MVP** (ChatGPT creates a local Task Manager with real records and safely evolves its data model). Current priority is **R0-01: verify/fix generation parent-aware rollback across orphan snapshot gaps**, followed by normal-user semantic preview, structured SQLite CRUD, independent local apps and AI app creation. The agent's [handoff](docs/10_AGENT_HANDOFF.md) follows the same ticket IDs.
 
 All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
+
+## Typed records and extended UI palette — implementation under verification
+
+The trusted palette now declares **21 kinds**: five Open-Meteo widgets, seven initial general widgets and nine new UI/data widgets (`record-form`, `record-list`, `checkbox`, `select`, `date-picker`, `dialog`, `tabs`, `image`, `icon`). Typed models, SQLite CRUD, filters and sorting are additive to the existing declaration version 2; old input/list data is not restructured. Use **Ctrl+Shift+D → Пример: задачи → Preview → Apply** to load the bundled task-manager composition inside the existing City Pulse app. The demo deliberately keeps the previous City Pulse source/permission declarations because arbitrary source/permission changes are still gated; this is *not* independent multi-app creation.
+
+See [full component reference](docs/19_COMPONENT_REFERENCE.md), [local-data contract](docs/13_LOCAL_DATA.md), [task example](examples/task-manager.mutyva.json) and `tools/validate_palette.py`. CTest and on-device visual acceptance for these newly added features are **pending**, not claimed as passed.
 
 ## Default weather city
 

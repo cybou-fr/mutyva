@@ -76,6 +76,7 @@ ApplicationWindow {
                 }
                 Button { visible: root.editorOpen; text: root.editorOpen ? "Скрыть редактор" : "Изменить интерфейс"; onClicked: root.editorOpen = !root.editorOpen }
                 Button { visible: root.editorOpen; text: "Пример: заметки"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewPaletteDemo() }
+                Button { visible: root.editorOpen; text: "Пример: задачи"; enabled: !appDocument.hasPreview; onClicked: appDocument.previewTaskManagerDemo() }
                 Button { visible: root.editorOpen; text: "+ Виджет влажности"; enabled: !appDocument.hasPreview; onClicked: appDocument.addHumidityCard() }
                 Button { visible: root.editorOpen; text: "Предыдущее сохранение"; enabled: !appDocument.hasPreview && appDocument.generation > 1; onClicked: appDocument.rollback() }
                 Button { visible: root.editorOpen; text: "Сбросить интерфейс"; enabled: !appDocument.hasPreview; onClicked: appDocument.resetDemo() }

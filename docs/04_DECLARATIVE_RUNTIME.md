@@ -31,7 +31,7 @@ No free-form Qt objects, arbitrary expressions, system commands, shell, filesyst
 
 All four operations are available from **Изменить интерфейс**, and JSON can be pasted/edited as a declaration or mutation. updateProperty is restricted to the selected kind's catalogued properties. An omitted addWidget.after appends within its parent; an empty after inserts/moves to the beginning. Nonempty anchors must be siblings in the same container. moveWidget may set parent; cycles and moving after oneself are rejected. Removing a container removes its subtree, with the full diff shown in preview. See `12_GENERAL_PALETTE.md` for actions and session data.
 
-Preview renders the candidate without changing the active document or disk. Apply saves a new generation; Cancel restores the committed view. Whole-document editing cannot change the application ID, data sources or permissions in this slice. Deletion also drops the removed generic controls' session values, with a preview warning; it does not delete external data. Delegates are recreated, but generic input/list state is kept separately by stable ID. The weather search field's transient view state is not reconciled yet.
+Preview renders the candidate without changing the active document or disk. Apply saves a new generation; Cancel restores the committed view. Whole-document editing cannot change the application ID, data sources or permissions in this slice. Deleting a widget hides its separate stored values; returning the same stable ID and kind restores access. Interface history never deletes or rolls back local user records. Delegates are recreated, but generic input/list state is kept separately by stable ID. The weather search field's transient view state is not reconciled yet.
 
 ## Pipeline / invariants
 
@@ -51,15 +51,14 @@ User request -> AI JSON -> Parse -> JSON Schema validation
 
 ## Generation storage layout
 
-```
-app-data/
-  apps/city-pulse/
-    head.json
-    generations/000001.json
-    generations/000002.json
-    generations/000003.json
-  cache/open-meteo/
-  mutyva.sqlite
+Actual current layout (not the future multi-app plan):
+
+```text
+AppDataLocation/generations/
+  head.json
+  generation-00001.json
+  generation-00001.meta.json
+  data/user-data.sqlite     # widget_data + record_data
 ```
 
 Full store should use an SQLite transaction that writes a new snapshot, metadata, parent link, hash and HEAD consistently. If assets are external files, write content blobs before final metadata commit, use hash-based paths, and garbage-collect unreachable blobs later. The current runtime writes atomic snapshots, parent/hash/timestamp/description metadata, and a HEAD commit marker. Rollback follows a verified parent instead of subtracting 1; see [18_GENERATION_METADATA.md](18_GENERATION_METADATA.md). Selectable full history, DB-backed generations and crash recovery remain future work.
@@ -93,3 +92,7 @@ For example: `examples/mutations/add-humidity-card.json`. The application lets a
 ## Full Visual RAD designer is later
 
 Initial preview + basic reorder/switch is enough. Pixel-perfect designer, drag-drop toolbox, connection graph, dynamic end-user expression language and component code editor are **not** MVP gates.
+
+## Additive typed records and palette extension (experimental)
+
+`models` is optional inside the current schemaVersion=2 document, with typed stable field descriptors. Mutation operations `addModel` and `addField` are supported; removal and incompatible changes to existing fields are rejected. The installed catalog contains 21 kinds, and Qt renders only trusted, compiled widget classes. `record-form` and `record-list` use separate app-scoped SQLite records, not UI configuration generations. This is a compatibility-first implementation, not the already-planned v3 migration or the multi-app runtime. See [19_COMPONENT_REFERENCE.md](19_COMPONENT_REFERENCE.md), [13_LOCAL_DATA.md](13_LOCAL_DATA.md) and [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md).
