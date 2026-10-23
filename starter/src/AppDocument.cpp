@@ -13,7 +13,9 @@
 #include <QStandardPaths>
 #include <QRegularExpression>
 #include <QMap>
+#include <QSet>
 #include <QStringList>
+#include <algorithm>
 
 namespace {
 QVariantList widgetList(const QJsonObject &document) {
@@ -27,6 +29,21 @@ QString digest(const QJsonObject &document) {
 bool writeAtomically(const QString &path, const QByteArray &bytes) {
     QSaveFile file(path);
     return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();
+}
+QString displayValue(const QJsonValue &value) {
+    if (value.isUndefined()) return "∅";
+    if (value.isNull()) return "null";
+    const QByteArray raw = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
+    const QString result = QString::fromUtf8(raw.mid(1, raw.size() - 2));
+    return result.size() > 200 ? result.left(200) + "… (усечено)" : result;
+}
+QMap<QString, QJsonObject> byId(const QJsonArray &items) {
+    QMap<QString, QJsonObject> result;
+    for (const auto &entry : items) {
+        const auto obj = entry.toObject();
+        result.insert(obj.value("id").toString(), obj);
+    }
+    return result;
 }
 bool parse(const QString &json, QJsonObject &out, QString &error) {
     if (json.toUtf8().size() > 1024 * 1024) {
@@ -83,6 +100,16 @@ AppDocument::AppDocument(QObject *parent, const QString &storageFolder) : QObjec
         }
         if (m_error.isEmpty()) m_error = "Некорректный HEAD или контрольная сумма";
         m_error += ". Сохранение заблокировано: существующая история сохранена.";
+        m_storageReady = false;
+        return;
+    }
+    // Do not convert crash remnants or a missing HEAD into a silently fresh app.
+    // Interrupted commits leave orphan snapshots or metadata; existing user data
+    // also belongs to this store and must never be orphaned by auto-bootstrap.
+    const auto remnants = QDir(m_folder).entryList({"generation-*.json"}, QDir::Files);
+    if (!remnants.isEmpty() || QFile::exists(userDataPath())) {
+        m_error = "HEAD отсутствует, но найдены поколения или пользовательские данные. " 
+                  "Автоматический сброс запрещён; файлы сохранены для восстановления.";
         m_storageReady = false;
         return;
     }
@@ -256,35 +283,71 @@ bool AppDocument::stage(const QJsonObject &proposed, const QString &summary) {
     }
     if (candidate == m_document) return reject("Изменений нет");
     QStringList changes;
-    QMap<QString, QJsonObject> before, after;
+    changes << "Предпросмотр: изменение конфигурации, без записи на диск."
+            << "Записи SQLite не изменяются и не откатываются вместе с интерфейсом.";
+    const auto oldWidgets = m_document.value("widgets").toArray();
+    const auto newWidgets = candidate.value("widgets").toArray();
+    const auto before = byId(oldWidgets);
+    const auto after = byId(newWidgets);
     QStringList oldOrder, newOrder;
-    for (const auto &entry : m_document.value("widgets").toArray()) {
+    for (const auto &entry : oldWidgets) oldOrder << entry.toObject().value("id").toString();
+    for (const auto &entry : newWidgets) {
         const auto w = entry.toObject();
         const auto id = w.value("id").toString();
-        before.insert(id, w); oldOrder.append(id);
-    }
-    for (const auto &entry : candidate.value("widgets").toArray()) {
-        const auto w = entry.toObject();
-        const auto id = w.value("id").toString();
-        after.insert(id, w); newOrder.append(id);
-        if (!before.contains(id)) changes << "+ Добавить " + id + " (" + w.value("kind").toString() + ")";
-        else {
-            if (before[id].value("kind") != w.value("kind"))
-                changes << "Тип " + id + ": " + before[id].value("kind").toString() + " → " + w.value("kind").toString();
-            if (before[id].value("title") != w.value("title"))
-                changes << "Заголовок " + id + ": «" + before[id].value("title").toString() + "» → «" + w.value("title").toString() + "»";
-            for (const auto &property : {"text", "value", "placeholder", "items", "action", "parent"})
-                if (before[id].value(property) != w.value(property))
-                    changes << "Изменить " + id + "." + property + ": " +
-                        QString::fromUtf8(QJsonDocument(QJsonArray{w.value(property)}).toJson(QJsonDocument::Compact));
+        newOrder << id;
+        if (!before.contains(id)) {
+            changes << "+ Добавлен компонент " + id + " (" + w.value("kind").toString() + ")";
+            if (w.contains("model")) changes << "  Модель данных: " + displayValue(w.value("model"));
+            if (w.contains("action")) changes << "  Действие: " + displayValue(w.value("action"));
+            if (w.contains("filter")) changes << "  Фильтр: " + displayValue(w.value("filter"));
+            if (w.contains("sort")) changes << "  Сортировка: " + displayValue(w.value("sort"));
+            continue;
+        }
+        QSet<QString> keys;
+        for (auto it = w.begin(); it != w.end(); ++it) keys.insert(it.key());
+        const auto previousWidget = before.value(id);
+        for (auto it = previousWidget.begin(); it != previousWidget.end(); ++it) keys.insert(it.key());
+        keys.remove("id");
+        auto sorted = keys.values();
+        std::sort(sorted.begin(), sorted.end());
+        for (const auto &key : sorted) {
+            const auto previous = before.value(id).value(key);
+            const auto next = w.value(key);
+            if (previous == next) continue;
+            changes << "Изменено " + id + "." + key + ": "
+                        + displayValue(previous) + " → " + displayValue(next);
+            if (key == "action") changes << "  Проверьте результат нажатия перед подтверждением.";
+            if (key == "model" || key == "filter" || key == "sort")
+                changes << "  Это влияет на данные, видимые в компоненте; сохранённые записи не переписываются.";
         }
     }
     for (const auto &id : oldOrder)
-        if (!after.contains(id)) changes << "− Удалить " + id + " (локальные данные сохранены отдельно)";
-    if (oldOrder != newOrder) changes << "Порядок: " + newOrder.join(" → ");
-    if (candidate.value("name") != m_document.value("name")) changes << "Имя: " + candidate.value("name").toString();
-    if (candidate.value("description") != m_document.value("description")) changes << "Описание приложения изменено";
-    if (candidate.value("models") != m_document.value("models")) changes << "Модели данных: добавлены новые модели или поля (записи сохраняются)";
+        if (!after.contains(id)) changes << "− Удалён компонент " + id
+            + " (его локальные данные не удаляются автоматически)";
+    if (oldOrder != newOrder) changes << "Порядок компонентов: " + newOrder.join(" → ");
+    for (const auto &key : {"name", "description"}) {
+        if (candidate.value(key) != m_document.value(key))
+            changes << "Изменено приложение." + QString(key) + ": "
+                    + displayValue(m_document.value(key)) + " → " + displayValue(candidate.value(key));
+    }
+    const auto prevModels = byId(m_document.value("models").toArray());
+    const auto nextModels = byId(candidate.value("models").toArray());
+    for (auto it = nextModels.begin(); it != nextModels.end(); ++it) {
+        const auto id = it.key();
+        if (!prevModels.contains(id)) {
+            changes << "+ Новая модель " + id + ": " + displayValue(it.value());
+            continue;
+        }
+        const auto oldFields = byId(prevModels.value(id).value("fields").toArray());
+        const auto newFields = byId(it.value().value("fields").toArray());
+        for (auto field = newFields.begin(); field != newFields.end(); ++field)
+            if (!oldFields.contains(field.key()))
+                changes << "+ Новое поле " + id + "." + field.key() + ": " + displayValue(field.value());
+        if (it.value().value("title") != prevModels.value(id).value("title"))
+            changes << "Название модели " + id + ": " + displayValue(prevModels.value(id).value("title"))
+                    + " → " + displayValue(it.value().value("title"));
+    }
+    changes << "Разрешения сети и внешние источники: без изменений. Новые доступы не предоставляются.";
     m_candidate = candidate;
     m_summary = summary + "\n" + changes.join('\n');
     m_error.clear();
@@ -379,18 +442,107 @@ bool AppDocument::applyPreview() {
     return commit(m_candidate, m_summary);
 }
 
-bool AppDocument::rollback() {
+QVariantList AppDocument::historyEntries() {
+    if (!m_storageReady || m_generation < 1) return {};
+    // Re-read HEAD and the full linked chain: never show orphan generations.
+    QJsonObject pointer;
+    if (!loadDocument(m_folder + "/head.json", pointer)) {
+        reject(m_error);
+        return {};
+    }
+    const bool modern = pointer.contains("metadataVersion") || pointer.contains("sha256");
+    if (pointer.value("generation").toInt(-1) != m_generation ||
+        (modern && (pointer.value("metadataVersion").toInt(-1) != 1 ||
+                    pointer.value("sha256").toString() != digest(m_document)))) {
+        reject("HEAD изменён: обновите приложение до выбора версии");
+        return {};
+    }
+    QVariantList result;
+    int generation = m_generation;
+    QString expectedSha = digest(m_document);
+    QSet<int> visited;
+    // A bounded gallery is intentional. Unbounded disk traversal is not a UI operation.
+    for (int depth = 0; generation > 0 && depth < 256; ++depth) {
+        if (visited.contains(generation)) {
+            reject("Обнаружен цикл в истории поколений");
+            return {};
+        }
+        visited.insert(generation);
+        QJsonObject snapshot;
+        int parent = 0;
+        QString parentSha;
+        if (!loadGeneration(generation, snapshot, parent, parentSha, false)) {
+            reject(m_error);
+            return {};
+        }
+        if (digest(snapshot) != expectedSha || (depth == 0 && snapshot != m_document)) {
+            reject("Контрольная сумма подтверждённого поколения не совпадает");
+            return {};
+        }
+        QJsonObject metadata;
+        const bool hasMetadata = QFile::exists(metadataPath(generation));
+        if (depth == 0 && modern && !hasMetadata) {
+            reject("Метаданные текущего подтверждённого поколения отсутствуют");
+            return {};
+        }
+        if (hasMetadata && !loadDocument(metadataPath(generation), metadata)) {
+            reject(m_error);
+            return {};
+        }
+        result.append(QVariantMap{
+            {"generation", generation},
+            {"description", hasMetadata ? metadata.value("description").toString() : "Старое поколение (без метаданных)"},
+            {"timestampUtc", hasMetadata ? metadata.value("timestampUtc").toString() : QString()},
+            {"current", depth == 0},
+            {"legacy", !hasMetadata},
+            {"sha256", expectedSha}
+        });
+        if (!hasMetadata || parent == 0) {
+            m_error.clear();
+            return result;
+        }
+        generation = parent;
+        expectedSha = parentSha;
+    }
+    if (generation > 0) {
+        reject("Цепочка поколений превышает 256: выбор заблокирован");
+        return {};
+    }
+    m_error.clear();
+    return result;
+}
+
+bool AppDocument::previewRestoreGeneration(int requested) {
     cancelPreview();
+    if (!m_storageReady) return reject("История недоступна до устранения ошибки загрузки");
+    if (requested < 1 || requested == m_generation)
+        return reject("Выберите другое подтверждённое поколение");
+    const auto entries = historyEntries();
+    QString expectedSha;
+    for (const auto &entry : entries) {
+        const auto item = entry.toMap();
+        if (item.value("generation").toInt() == requested)
+            expectedSha = item.value("sha256").toString();
+    }
+    if (expectedSha.isEmpty()) return reject("Поколение не является подтверждённым предком HEAD");
+    QJsonObject prior;
+    int parent = 0;
+    QString parentSha;
+    if (!loadGeneration(requested, prior, parent, parentSha, false))
+        return reject(m_error);
+    if (digest(prior) != expectedSha)
+        return reject("Контрольная сумма поколения изменилась; восстановление заблокировано");
+    // Preserve the latest schema descriptors and therefore all local rows.
+    // Rolling UI back must not effectively delete a newer field or model.
+    if (m_document.contains("models"))
+        prior.insert("models", m_document.value("models"));
+    return stage(prior, "Восстановить проверенное поколение " + QString::number(requested));
+}
+
+bool AppDocument::rollback() {
     if (m_parentGeneration < 1)
         return reject("Нет подтверждённого родителя: старые поколения без метаданных не выбираются автоматически");
-    QJsonObject prior;
-    int ancestor = 0;
-    QString ancestorHash;
-    if (!loadGeneration(m_parentGeneration, prior, ancestor, ancestorHash, false))
-        return reject(m_error);
-    if (digest(prior) != m_parentSha256)
-        return reject("Контрольная сумма подтверждённого родителя не совпадает");
-    return stage(prior, "Восстановить подтверждённое поколение " + QString::number(m_parentGeneration));
+    return previewRestoreGeneration(m_parentGeneration);
 }
 
 bool AppDocument::resetDemo() {

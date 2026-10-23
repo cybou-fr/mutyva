@@ -6,7 +6,7 @@
 
 Before editing any trust, data, schema, composition, connector, persistence or build boundary, review [current baseline/ASRs/risks](23_ARCHITECTURE_ASSESSMENT.md), [ADRs](adr/README.md) and [workflow with Definition of Done](24_ARCHITECTURE_WORKFLOW.md). Use this sequence: **user-visible FR → ASR/failure modes → alternatives/ADR → typed boundary contract → negative fixture → smallest vertical slice → Qt 6.12 CTest and static evidence → update current state/roadmap**. Do not claim a green native test when only Python contract CI passed.
 
-The highest-risk source findings are **AR-01 missing HEAD bootstrap** (`AppDocument.cpp`), **AR-02 incomplete semantic diff** (`AppDocument.cpp`), and **AR-03 Qt 6.12 installation secrets**; fix under existing R0-02/R0-03/R0-05. No duplicate ticket backlog and no assigned human owners: module/ticket + concrete evidence suffice. Model-produced code and arbitrary external data access remain prohibited.
+**R0-02/R0-03 source fixes were implemented but are NOT yet Qt 6.12-verified**: see [25_R0_RECOVERY_PREVIEW.md](25_R0_RECOVERY_PREVIEW.md). AR-01 missing HEAD bootstrap now fails closed, AR-02 ordinary semantic diff is dynamic, but deliberate HEAD repair and full Qt/UX tests remain. **AR-03 Qt 6.12 installation secrets** still blocks mandatory native verification. Do not mark R0-02/R0-03 accepted before those gates. No duplicate ticket backlog and no assigned human owners: module/ticket + concrete evidence suffice. Model-produced code and arbitrary external data access remain prohibited.
 
 ## Mission and authoritative queue
 

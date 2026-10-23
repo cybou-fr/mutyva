@@ -24,6 +24,79 @@ ApplicationWindow {
     IdentityDialog { id: welcomeDialog; welcomeMode: true }
     IdentityDialog { id: aboutDialog }
     ChatPanel { id: chatPanel; parent: Overlay.overlay }
+    Dialog {
+        id: historyDialog
+        objectName: "verifiedHistoryDialog"
+        title: "История проверенных изменений"
+        modal: true
+        standardButtons: Dialog.Close
+        anchors.centerIn: Overlay.overlay
+        width: Math.min(root.width - 24, 560)
+        height: Math.min(root.height - 32, 480)
+        property var entries: []
+        onAboutToShow: entries = appDocument.historyEntries()
+        contentItem: ScrollView {
+            clip: true
+            ColumnLayout {
+                width: historyDialog.availableWidth
+                spacing: 9
+                Label {
+                    text: "Восстановление создаст новое поколение интерфейса. Записи SQLite не откатываются."
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                Label {
+                    visible: historyDialog.entries.length === 0
+                    text: "Подтверждённая история недоступна. Проверьте сообщение об ошибке."
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                Repeater {
+                    model: historyDialog.entries
+                    delegate: Frame {
+                        id: historyRow
+                        required property var modelData
+                        Layout.fillWidth: true
+                        ColumnLayout {
+                            width: parent.width
+                            spacing: 4
+                            Label {
+                                text: "Поколение " + historyRow.modelData.generation
+                                      + (historyRow.modelData.current ? " (текущее)" : "")
+                                font.bold: true
+                                Layout.fillWidth: true
+                                textFormat: Text.PlainText
+                            }
+                            Label {
+                                text: historyRow.modelData.description || ""
+                                textFormat: Text.PlainText
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                            Label {
+                                visible: !!historyRow.modelData.timestampUtc
+                                text: historyRow.modelData.timestampUtc || ""
+                                color: root.muted
+                                Layout.fillWidth: true
+                            }
+                            Button {
+                                objectName: "restoreGeneration-" + historyRow.modelData.generation
+                                visible: !historyRow.modelData.current
+                                enabled: !appDocument.hasPreview
+                                text: "Предпросмотр этой версии"
+                                onClicked: {
+                                    if (appDocument.previewRestoreGeneration(historyRow.modelData.generation))
+                                        historyDialog.close()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     Shortcut { sequence: "Ctrl+Shift+D"; onActivated: root.editorOpen = !root.editorOpen }
     Component.onCompleted: { if (brandIdentity.welcomeRequired) welcomeDialog.open() }
 
@@ -68,6 +141,14 @@ ApplicationWindow {
                 spacing: 8
                 Button { objectName: "openAbout"; text: "О MUTYVA"; onClicked: aboutDialog.open() }
                 Button {
+                    objectName: "openHistory"
+                    text: "История"
+                    enabled: !appDocument.hasPreview && appDocument.generation > 0
+                    onClicked: historyDialog.open()
+                    ToolTip.visible: hovered
+                    ToolTip.text: "Просмотреть и восстановить только подтверждённые поколения"
+                }
+                Button {
                     visible: root.editorOpen
                     objectName: "reloadData"; text: "Перечитать данные"
                     onClicked: interactionState.reload()
@@ -102,7 +183,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Label { text: "Предпросмотр · ещё не сохранено"; color: brandIdentity.colors.cyan; font.bold: true; font.pixelSize: 18 }
                 Label {
-                    text: root.editorOpen ? appDocument.previewSummary : "Посмотрите, как будет выглядеть приложение, и подтвердите изменение."
+                    objectName: "semanticPreview"
+                    text: appDocument.previewSummary
                     textFormat: Text.PlainText
                     color: root.fg; wrapMode: Text.WordWrap; Layout.fillWidth: true
                 }

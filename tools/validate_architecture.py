@@ -11,6 +11,7 @@ docs = [ROOT / p for p in [
     "docs/23_ARCHITECTURE_ASSESSMENT.md",
     "docs/24_ARCHITECTURE_WORKFLOW.md",
     "docs/CASE_STUDY_FR.md",
+    "docs/25_R0_RECOVERY_PREVIEW.md",
     "docs/adr/README.md",
 ]]
 adrs = sorted((ROOT / "docs/adr").glob("[0-9][0-9][0-9][0-9]-*.md"))
@@ -35,6 +36,24 @@ for identifier in [f"AR-{i:02d}" for i in range(1, 10)]:
 for term in ["Definition of Ready", "Definition of Done", "IMPLEMENTED", "STATIC-PASS", "QT-PASS", "E2E-PASS"]:
     if term not in workflow:
         errors.append(f"Missing workflow evidence gate: {term}")
+# R0 reliability contracts must continue to have matching positive and negative
+# regression functions. Static presence does NOT prove the Qt tests pass.
+test_source = read(ROOT / "tests/RuntimeTest.cpp")
+host_source = read(ROOT / "starter/src/AppDocument.cpp")
+qml_source = read(ROOT / "starter/qml/Main.qml")
+for name in [
+    "missingHeadFailsClosedWithoutDeletingFiles",
+    "verifiedHistoryRestoreRejectsOrphansAndPreservesRecords",
+    "semanticPreviewIncludesAllWidgetAndModelChanges",
+]:
+    if f"void {name}()" not in test_source:
+        errors.append(f"Missing R0 regression test: {name}")
+for key in ["historyEntries()", "previewRestoreGeneration(", "head.json", "displayValue("]:
+    if key not in host_source:
+        errors.append(f"Missing R0 source contract: {key}")
+for key in ["semanticPreview", "openHistory", "restoreGeneration-"]:
+    if key not in qml_source:
+        errors.append(f"Missing R0 UI entry point: {key}")
 for adr in adrs:
     text = read(adr)
     if not re.search(r"^# ADR-\d{4}\s", text, re.M):

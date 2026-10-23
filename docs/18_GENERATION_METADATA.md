@@ -42,4 +42,4 @@ cmake --build build-msvc --config Release
 ctest --test-dir build-msvc -C Release --output-on-failure
 ```
 
-R0-01 passed alongside the existing Qt regressions on Windows; it is checked in the roadmap. R0-02 (history browser/recovery/selection and further crash testing) and R0-03 (normal-user semantic diff) remain separate tickets.
+R0-01 passed alongside historical Qt 6.8 regressions on Windows; it is checked in the roadmap. R0-02/R0-03 now have [code and tests](25_R0_RECOVERY_PREVIEW.md) for fail-closed missing HEAD, confirmed-chain history browsing, preview-by-ID and full ordinary-user property diff. **Qt 6.12 acceptance, forensic HEAD repair and extended fault tests remain open**.

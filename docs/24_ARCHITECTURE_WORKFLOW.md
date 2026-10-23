@@ -87,7 +87,7 @@ This template is **not** a mandatory 15-section report for a one-line UI label. 
 
 ## Two example decisions that should shape next code
 
-**R0-02/R0-03 first.** It may be tempting to build C1 dataflow now, but without verifiable recovery and complete semantic preview we cannot responsibly claim AI safely evolves a user's data application. Create a missing-HEAD/orphan test and a preview-diff property matrix *before* changing the engine.
+**R0-02/R0-03 first.** Missing-HEAD/orphan and semantic-property tests and source implementations have now been added ([contract + status](25_R0_RECOVERY_PREVIEW.md)); the Qt 6.12 acceptance gate and explicit missing-HEAD repair procedure are still pending. It may be tempting to jump to C1 dataflow, but do not mark the safety prerequisites green without observed Qt evidence.
 
 **C1 should prove an end-to-end seam, not a framework.** Use `tasks` selected record ID → host-owned typed selector → `text` read-only target. One binding with missing-selection/deleted-record behavior; test stale context and restart. Only then generalize a registered `port` interface to more kinds. Same principle for future public connectors: reuse Open-Meteo before inventing general REST support.
 

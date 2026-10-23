@@ -33,6 +33,8 @@ public:
     QString lastError() const { return m_error; }
     Q_INVOKABLE bool addHumidityCard();
     Q_INVOKABLE bool rollback();
+    Q_INVOKABLE QVariantList historyEntries();
+    Q_INVOKABLE bool previewRestoreGeneration(int generation);
     Q_INVOKABLE bool resetDemo();
     Q_INVOKABLE bool previewPaletteDemo();
     Q_INVOKABLE bool previewTaskManagerDemo();

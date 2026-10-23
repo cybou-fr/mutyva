@@ -1359,6 +1359,163 @@ private slots:
         QCOMPARE(bytes(folder.filePath("head.json")), head);
     }
 
+    void missingHeadFailsClosedWithoutDeletingFiles() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        AppDocument initial(nullptr, folder.path());
+        QCOMPARE(initial.generation(), 1);
+        const auto saved = bytes(folder.filePath("generation-00001.json"));
+        const auto meta = bytes(folder.filePath("generation-00001.meta.json"));
+        QVERIFY(QFile::remove(folder.filePath("head.json")));
+        AppDocument reopened(nullptr, folder.path());
+        QCOMPARE(reopened.generation(), 0);
+        QVERIFY(reopened.lastError().contains("HEAD"));
+        QVERIFY(!reopened.historyEntries().size());
+        QVERIFY(!reopened.previewRestoreGeneration(1));
+        QVERIFY(reopened.addHumidityCard());
+        QVERIFY(!reopened.applyPreview());
+        QVERIFY(!QFile::exists(folder.filePath("head.json")));
+        QCOMPARE(bytes(folder.filePath("generation-00001.json")), saved);
+        QCOMPARE(bytes(folder.filePath("generation-00001.meta.json")), meta);
+
+        QTemporaryDir remnantFolder;
+        QVERIFY(remnantFolder.isValid());
+        QFile orphan(remnantFolder.filePath("generation-00007.meta.json"));
+        QVERIFY(orphan.open(QIODevice::WriteOnly));
+        QVERIFY(orphan.write("partial") > 0);
+        orphan.close();
+        AppDocument orphaned(nullptr, remnantFolder.path());
+        QVERIFY(orphaned.lastError().contains("HEAD"));
+        QVERIFY(!QFile::exists(remnantFolder.filePath("head.json")));
+        QCOMPARE(bytes(orphan.fileName()), QByteArray("partial"));
+
+        QTemporaryDir dataFolder;
+        QVERIFY(dataFolder.isValid());
+        QVERIFY(QDir().mkpath(dataFolder.filePath("data")));
+        QFile userData(dataFolder.filePath("data/user-data.sqlite"));
+        QVERIFY(userData.open(QIODevice::WriteOnly));
+        QVERIFY(userData.write("existing-private-data") > 0);
+        userData.close();
+        AppDocument protectedData(nullptr, dataFolder.path());
+        QVERIFY(protectedData.lastError().contains("HEAD"));
+        QVERIFY(!QFile::exists(dataFolder.filePath("head.json")));
+        QCOMPARE(bytes(userData.fileName()), QByteArray("existing-private-data"));
+    }
+
+    void verifiedHistoryRestoreRejectsOrphansAndPreservesRecords() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        AppDocument document(nullptr, folder.path());
+        QVERIFY(document.previewTaskManagerDemo());
+        QVERIFY(document.applyPreview());
+        QCOMPARE(document.generation(), 2);
+        InteractionState state(&document);
+        QVERIFY2(state.ready(), qPrintable(state.lastError()));
+        QVERIFY(state.createRecord("taskForm", {{"title", "Не потерять запись"}}));
+        QCOMPARE(state.records("taskList").size(), 1);
+        auto orphan = baseline();
+        orphan.insert("name", "UNCONFIRMED");
+        QFile orphanFile(folder.filePath("generation-00003.json"));
+        QVERIFY(orphanFile.open(QIODevice::WriteOnly));
+        orphanFile.write(QJsonDocument(orphan).toJson()); orphanFile.close();
+        const auto bytesBefore = bytes(orphanFile.fileName());
+        QVERIFY(document.renameWidget("taskHeading", "Обновлённые задачи"));
+        QVERIFY(document.applyPreview());
+        QCOMPARE(document.generation(), 4);
+        const auto history = document.historyEntries();
+        QCOMPARE(history.size(), 3);
+        QCOMPARE(history[0].toMap().value("generation").toInt(), 4);
+        QCOMPARE(history[1].toMap().value("generation").toInt(), 2);
+        QCOMPARE(history[2].toMap().value("generation").toInt(), 1);
+        QVERIFY(!document.previewRestoreGeneration(3));
+        QVERIFY(!document.hasPreview());
+        const auto current = document.documentJson();
+        const auto head = bytes(folder.filePath("head.json"));
+        QVERIFY(document.previewRestoreGeneration(1));
+        QVERIFY(document.hasPreview());
+        QVERIFY(document.previewSummary().contains("SQLite"));
+        QCOMPARE(document.documentJson(), current);
+        QCOMPARE(bytes(folder.filePath("head.json")), head);
+        QVERIFY(document.applyPreview());
+        QCOMPARE(document.generation(), 5);
+        QCOMPARE(bytes(orphanFile.fileName()), bytesBefore);
+        QCOMPARE(read(folder.filePath("generation-00005.meta.json")).value("parentGeneration").toInt(), 4);
+        // Return to an actual form and demonstrate data stayed outside UI generations.
+        QVERIFY(document.previewTaskManagerDemo());
+        QVERIFY(document.applyPreview());
+        AppDocument restarted(nullptr, folder.path());
+        InteractionState rows(&restarted);
+        QVERIFY(rows.ready());
+        QCOMPARE(rows.records("taskList").size(), 1);
+        QCOMPARE(rows.records("taskList")[0].toMap().value("title").toString(), QString("Не потерять запись"));
+        // A tampered but schema-valid ancestor is never offered as a verified restore.
+        auto altered = read(folder.filePath("generation-00002.json"));
+        altered.insert("name", "Tampered");
+        QFile tamper(folder.filePath("generation-00002.json"));
+        QVERIFY(tamper.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        tamper.write(QJsonDocument(altered).toJson()); tamper.close();
+        QVERIFY(restarted.historyEntries().isEmpty());
+        QVERIFY(restarted.lastError().contains("Контрольная сумма"));
+        QVERIFY(!restarted.previewRestoreGeneration(2));
+    }
+
+    void semanticPreviewIncludesAllWidgetAndModelChanges() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        auto base = read(QStringLiteral(MUTYVA_SOURCE_DIR "/examples/task-manager.mutyva.json"));
+        auto initialWidgets = base.value("widgets").toArray();
+        initialWidgets.append(QJsonObject{{"id", "previewCity"}, {"kind", "city-search"}, {"defaultCity", "Paris"}});
+        initialWidgets.append(QJsonObject{{"id", "noteInput"}, {"kind", "input"}, {"title", "Note"}});
+        initialWidgets.append(QJsonObject{{"id", "noteList"}, {"kind", "list"}, {"title", "Notes"}});
+        initialWidgets.append(QJsonObject{{"id", "noteAction"}, {"kind", "button"}, {"title", "Add"},
+            {"action", QJsonObject{{"kind", "append-item"}, {"input", "noteInput"}, {"target", "noteList"}}}});
+        base.insert("widgets", initialWidgets);
+        QVERIFY2(document.previewDocument(json(base)), qPrintable(document.lastError()));
+        QVERIFY(document.applyPreview());
+        const auto previous = document.documentJson();
+        auto next = base;
+        auto widgets = next.value("widgets").toArray();
+        for (qsizetype i = 0; i < widgets.size(); ++i) {
+            auto w = widgets[i].toObject();
+            const auto id = w.value("id").toString();
+            if (id == "taskHeading") w.insert("style", QJsonObject{{"tone", "danger"}, {"padding", 12}});
+            if (id == "taskList") {
+                w.insert("filter", QJsonObject{{"field", "done"}, {"op", "equals"}, {"value", true}});
+                w.insert("sort", QJsonObject{{"field", "priority"}, {"descending", false}});
+            }
+            if (id == "priorityChoice") { w.insert("options", QJsonArray{"Все", "Новые"}); w.insert("value", "Новые"); }
+            if (id == "infoDialog") w.insert("message", "Другой текст");
+            if (id == "brandImage") w.insert("source", "mutyva-logo");
+            if (id == "taskIcon") w.insert("icon", "heart");
+            if (id == "previewCity") w.insert("defaultCity", "Poitiers");
+            if (id == "noteAction") w.insert("action", QJsonObject{{"kind", "clear-list"}, {"target", "noteList"}});
+            widgets[i] = w;
+        }
+        next.insert("widgets", widgets);
+        auto models = next.value("models").toArray();
+        auto taskModel = models[0].toObject();
+        auto fields = taskModel.value("fields").toArray();
+        fields.append(QJsonObject{{"id", "category"}, {"label", "Category"}, {"type", "text"}, {"default", "General"}});
+        taskModel.insert("fields", fields); models[0] = taskModel;
+        next.insert("models", models);
+        QVERIFY2(document.previewDocument(json(next)), qPrintable(document.lastError()));
+        const auto summary = document.previewSummary();
+        for (const auto &key : {"style", "filter", "sort", "options", "message", "source", "icon", "defaultCity", "action"}) {
+            QVERIFY2(summary.contains(QString::fromLatin1(key)), qPrintable(summary));
+        }
+        QVERIFY(summary.contains("tasks.category"));
+        QVERIFY(summary.contains("Разрешения"));
+        QVERIFY(summary.contains("SQLite"));
+        QCOMPARE(document.documentJson(), previous);
+        const auto beforeHead = bytes(folder.filePath("head.json"));
+        document.cancelPreview();
+        QCOMPARE(bytes(folder.filePath("head.json")), beforeHead);
+        auto invalid = next;
+        invalid.insert("permissions", QJsonArray{});
+        QVERIFY(!document.previewDocument(json(invalid)));
+        QVERIFY(!document.hasPreview());
+    }
+
     void confirmedParentSkipsOrphanAndSurvivesRestart() {
         QTemporaryDir folder;
         QVERIFY(folder.isValid());
@@ -1510,6 +1667,9 @@ private slots:
         QTRY_VERIFY(findItem(window->contentItem(), "citySearchInput"));
         QCOMPARE(findItem(window->contentItem(), "citySearchInput")->property("text").toString(), QString("Paris"));
         QVERIFY(document.updateWidgetProperty("citySearch", "defaultCity", "Poitiers"));
+        QTRY_VERIFY(findItem(window->contentItem(), "semanticPreview"));
+        QVERIFY(findItem(window->contentItem(), "semanticPreview")->property("text").toString().contains("defaultCity"));
+        QVERIFY(findItem(window->contentItem(), "semanticPreview")->isVisible());
         QTRY_COMPARE(findItem(window->contentItem(), "citySearchInput")->property("text").toString(), QString("Poitiers"));
         QVERIFY(!findItem(window->contentItem(), "citySearchInput")->property("enabled").toBool());
         QCOMPARE(document.defaultCity(), QString("Paris"));
@@ -1518,6 +1678,14 @@ private slots:
         QVERIFY(document.updateWidgetProperty("citySearch", "defaultCity", "Poitiers")); QVERIFY(document.applyPreview());
         QTRY_VERIFY(findItem(window->contentItem(), "citySearchInput")->property("enabled").toBool());
         QCOMPARE(document.defaultCity(), QString("Poitiers"));
+        auto *openHistory = window->findChild<QObject *>("openHistory");
+        QVERIFY(openHistory);
+        QVERIFY(QMetaObject::invokeMethod(openHistory, "clicked"));
+        QTRY_VERIFY(findItem(window->contentItem(), "restoreGeneration-1"));
+        QVERIFY(QMetaObject::invokeMethod(findItem(window->contentItem(), "restoreGeneration-1"), "clicked"));
+        QVERIFY(document.hasPreview());
+        QVERIFY(document.previewSummary().contains("Восстановить проверенное поколение"));
+        document.cancelPreview();
         auto *prepareContext = window->findChild<QObject *>("prepareDesignerContext");
         QVERIFY(prepareContext);
         QVERIFY(QMetaObject::invokeMethod(prepareContext, "clicked"));
