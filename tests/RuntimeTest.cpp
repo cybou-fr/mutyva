@@ -926,9 +926,11 @@ private slots:
         QVERIFY(picker);
         picker->setProperty("currentIndex", 2); // notesText, property text.
         QVERIFY(QMetaObject::invokeMethod(picker, "activated", Q_ARG(int, 2)));
+        auto *propertyPicker = window->findChild<QObject *>("propertyPicker");
         auto *propertyValue = window->findChild<QObject *>("propertyValue");
         auto *update = window->findChild<QObject *>("updateWidgetProperty");
-        QVERIFY(propertyValue && update);
+        QVERIFY(propertyPicker && propertyValue && update);
+        QTRY_COMPARE(propertyPicker->property("currentText").toString(), QString("text"));
         propertyValue->setProperty("text", "Редактирование текста работает");
         QVERIFY(QMetaObject::invokeMethod(update, "clicked"));
         QVERIFY2(document.hasPreview(), qPrintable(document.lastError()));

@@ -12,7 +12,10 @@ ColumnLayout {
         appDocument.widgets.filter(function(w) { return (w.parent || "") === (panel.selectedWidget ? (panel.selectedWidget.parent || "") : "") })
         .map(function(w) { return {id: w.id, title: "После: " + w.id} }))
     property var selectedDescriptor: appDocument.catalog.find(function(c) { return panel.selectedWidget && c.kind === panel.selectedWidget.kind })
-    property var propertyNames: selectedDescriptor ? Object.keys(selectedDescriptor.writableProperties).filter(function(p) { return p !== "title" }) : []
+    // Keep design metadata after primary content fields; preserve the familiar editing flow.
+    property var propertyNames: selectedDescriptor ? Object.keys(selectedDescriptor.writableProperties)
+        .filter(function(p) { return p !== "title" })
+        .sort(function(a, b) { return a === "style" ? 1 : b === "style" ? -1 : 0 }) : []
     property var parents: [{id: "", title: "Корень интерфейса"}].concat(appDocument.widgets.filter(function(w) {
         return appDocument.catalog.some(function(c) { return c.kind === w.kind && c.container })
     }).map(function(w) { return {id: w.id, title: w.id} }))
@@ -110,14 +113,14 @@ ColumnLayout {
         visible: panel.propertyNames.length > 0
         Layout.fillWidth: true; Layout.preferredHeight: implicitHeight; spacing: 8
         ComboBox {
-            id: propertyPicker; width: Math.min(180, panel.width)
+            id: propertyPicker; objectName: "propertyPicker"; width: Math.min(180, panel.width)
             model: panel.propertyNames
             onActivated: propertyValue.text = panel.propertyText()
         }
         TextField {
             id: propertyValue; objectName: "propertyValue"; width: Math.min(380, panel.width)
             text: panel.propertyText()
-            placeholderText: "Значение; для items и action — JSON"
+            placeholderText: "Значение; для структурных свойств — JSON"
             Accessible.name: "Значение свойства компонента"
         }
         Button {
@@ -128,7 +131,8 @@ ColumnLayout {
                 panel.propertyError = ""
                 var path = panel.propertyNames[propertyPicker.currentIndex]
                 try {
-                    var value = path === "items" || path === "action" ? JSON.parse(propertyValue.text) : propertyValue.text
+                    var structured = ["items", "action", "style", "options", "filter", "sort"].indexOf(path) >= 0
+                    var value = structured ? JSON.parse(propertyValue.text) : propertyValue.text
                     appDocument.updateWidgetProperty(panel.selectedWidget.id, path, value)
                 } catch (error) { panel.propertyError = "Введите корректный JSON для свойства " + path }
             }
