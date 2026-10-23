@@ -62,7 +62,7 @@ app-data/
   mutyva.sqlite
 ```
 
-Full store should use an SQLite transaction that writes a new snapshot, metadata, parent link, hash and HEAD consistently. If assets are external files, write content blobs before final metadata commit, use hash-based paths, and garbage-collect unreachable blobs later. Basic starter already demonstrates append-only generation files and an atomically replaced HEAD, but lacks full schema validation and DB-backed history browser.
+Full store should use an SQLite transaction that writes a new snapshot, metadata, parent link, hash and HEAD consistently. If assets are external files, write content blobs before final metadata commit, use hash-based paths, and garbage-collect unreachable blobs later. The current runtime writes atomic snapshots, parent/hash/timestamp/description metadata, and a HEAD commit marker. Rollback follows a verified parent instead of subtracting 1; see [18_GENERATION_METADATA.md](18_GENERATION_METADATA.md). Selectable full history, DB-backed generations and crash recovery remain future work.
 
 ## Registry plan
 

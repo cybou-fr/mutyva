@@ -52,7 +52,9 @@ signals:
     void designerChanged();
 private:
     bool loadDocument(const QString &path, QJsonObject &out);
-    bool commit(const QJsonObject &newDocument);
+    bool commit(const QJsonObject &newDocument, const QString &description = {});
+    bool loadGeneration(int generation, QJsonObject &out, int &parent, QString &parentHash, bool requireMetadata);
+    QString metadataPath(int generation) const;
     bool propose(const QJsonObject &operation, const QString &summary);
     bool stage(const QJsonObject &candidate, const QString &summary);
     bool reject(const QString &error);
@@ -60,6 +62,8 @@ private:
     QString m_folder;
     QString m_error;
     int m_generation = 0;
+    int m_parentGeneration = 0; // Confirmed by the current generation metadata; 0 for legacy/unproven.
+    QString m_parentSha256;
     QJsonObject m_document;
     QJsonObject m_candidate;
     QString m_summary;

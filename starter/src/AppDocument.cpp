@@ -3,6 +3,9 @@
 #include "DesignerContext.h"
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QCryptographicHash>
+#include <QDateTime>
+#include <limits>
 #include <QFile>
 #include <QDir>
 #include <QLockFile>
@@ -15,6 +18,15 @@
 namespace {
 QVariantList widgetList(const QJsonObject &document) {
     return document.value("widgets").toArray().toVariantList();
+}
+QString digest(const QJsonObject &document) {
+    // Qt's stable compact JSON serialization is the digest input for this metadata format.
+    return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(document).toJson(QJsonDocument::Compact),
+        QCryptographicHash::Sha256).toHex());
+}
+bool writeAtomically(const QString &path, const QByteArray &bytes) {
+    QSaveFile file(path);
+    return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();
 }
 bool parse(const QString &json, QJsonObject &out, QString &error) {
     if (json.toUtf8().size() > 1024 * 1024) {
@@ -48,31 +60,40 @@ AppDocument::AppDocument(QObject *parent, const QString &storageFolder) : QObjec
     }
     const auto head = m_folder + "/head.json";
     if (QFile::exists(head)) {
-        QJsonObject meta, saved;
-        if (loadDocument(head, meta)) {
-            const int n = meta.value("generation").toInt(-1);
-            if (n > 0 && loadDocument(generationPath(n), saved) &&
-                DeclarativeRuntime::validateDocument(saved, m_error)) {
+        QJsonObject pointer, saved;
+        if (loadDocument(head, pointer)) {
+            const int n = pointer.value("generation").toInt(-1);
+            const bool modern = pointer.contains("metadataVersion") || pointer.contains("sha256");
+            int parent = 0;
+            QString parentHash;
+            if (n > 0 && (!modern || pointer.value("metadataVersion").toInt(-1) == 1) &&
+                loadGeneration(n, saved, parent, parentHash, modern) &&
+                (!modern || pointer.value("sha256").toString() == digest(saved))) {
                 m_generation = n;
+                m_parentGeneration = parent;
+                m_parentSha256 = parentHash;
                 m_document = saved;
                 if (saved.value("schemaVersion") == QJsonValue(1)) {
                     auto upgraded = saved;
                     upgraded.insert("schemaVersion", 2);
-                    commit(upgraded); // Append migration; never rewrite the v1 snapshot.
+                    commit(upgraded, "Миграция декларации v1 в v2"); // Preserve original v1 snapshot.
                 }
                 return;
             }
         }
-        if (m_error.isEmpty()) m_error = "Некорректный HEAD";
+        if (m_error.isEmpty()) m_error = "Некорректный HEAD или контрольная сумма";
         m_error += ". Сохранение заблокировано: существующая история сохранена.";
         m_storageReady = false;
         return;
     }
-    commit(m_document);
+    commit(m_document, "Исходное приложение");
 }
 
 QString AppDocument::generationPath(int n) const {
     return m_folder + QString("/generation-%1.json").arg(n, 5, 10, QChar('0'));
+}
+QString AppDocument::metadataPath(int n) const {
+    return m_folder + QString("/generation-%1.meta.json").arg(n, 5, 10, QChar('0'));
 }
 
 bool AppDocument::loadDocument(const QString &path, QJsonObject &out) {
@@ -80,6 +101,38 @@ bool AppDocument::loadDocument(const QString &path, QJsonObject &out) {
     if (!file.open(QIODevice::ReadOnly)) { m_error = "Не удалось открыть: " + path; return false; }
     if (file.size() > 1024 * 1024) { m_error = "Документ превышает 1 МБ: " + path; return false; }
     return parse(QString::fromUtf8(file.readAll()), out, m_error);
+}
+
+bool AppDocument::loadGeneration(int n, QJsonObject &out, int &parent, QString &parentHash, bool requireMetadata) {
+    parent = 0;
+    parentHash.clear();
+    if (n < 1 || !loadDocument(generationPath(n), out)) return false;
+    if (!DeclarativeRuntime::validateDocument(out, m_error)) return false;
+    if (!QFile::exists(metadataPath(n))) {
+        if (!requireMetadata) return true; // Legacy HEAD: no reliable ancestry before this version.
+        m_error = "Метаданные подтверждённого поколения отсутствуют";
+        return false;
+    }
+    QJsonObject metadata;
+    if (!loadDocument(metadataPath(n), metadata)) return false;
+    const int previous = metadata.value("parentGeneration").toInt(-1);
+    const auto previousHash = metadata.value("parentSha256").toString();
+    const static QRegularExpression hexPattern("^[0-9a-f]{64}$");
+    const auto timestamp = metadata.value("timestampUtc").toString();
+    if (metadata.value("formatVersion").toInt(-1) != 1 ||
+        metadata.value("generation").toInt(-1) != n ||
+        previous < 0 || previous >= n ||
+        metadata.value("sha256").toString() != digest(out) ||
+        (previous == 0 && !previousHash.isEmpty()) ||
+        (previous > 0 && !hexPattern.match(previousHash).hasMatch()) ||
+        !metadata.value("description").isString() ||
+        !timestamp.endsWith('Z') || !QDateTime::fromString(timestamp, Qt::ISODateWithMs).isValid()) {
+        m_error = "Повреждены метаданные или контрольная сумма поколения " + QString::number(n);
+        return false;
+    }
+    parent = previous;
+    parentHash = previousHash;
+    return true;
 }
 
 QVariantList AppDocument::widgets() const { return widgetList(m_document); }
@@ -95,33 +148,70 @@ bool AppDocument::reject(const QString &error) {
     return false;
 }
 
-bool AppDocument::commit(const QJsonObject &next) {
+bool AppDocument::commit(const QJsonObject &next, const QString &description) {
     if (!m_storageReady) return reject("Сохранение заблокировано из-за ошибки загрузки истории");
     QString validationError;
     if (!DeclarativeRuntime::validateDocument(next, validationError)) return reject(validationError);
     QLockFile lock(m_folder + "/write.lock");
     if (!lock.tryLock(0)) return reject("История занята другим экземпляром приложения");
+
     const auto headPath = m_folder + "/head.json";
     if (QFile::exists(headPath)) {
-        QJsonObject meta;
-        if (!loadDocument(headPath, meta)) return reject(m_error);
-        if (meta.value("generation").toInt(-1) != m_generation)
+        QJsonObject pointer;
+        if (!loadDocument(headPath, pointer)) return reject(m_error);
+        if (pointer.value("generation").toInt(-1) != m_generation)
             return reject("История изменена другим экземпляром. Перезапустите приложение.");
+        const bool modern = pointer.contains("metadataVersion") || pointer.contains("sha256");
+        if (modern && (pointer.value("metadataVersion").toInt(-1) != 1 ||
+                       pointer.value("sha256").toString() != digest(m_document)))
+            return reject("HEAD или его контрольная сумма изменены");
+        QJsonObject stored;
+        int storedParent = 0;
+        QString storedParentHash;
+        if (!loadGeneration(m_generation, stored, storedParent, storedParentHash, modern) ||
+            stored != m_document)
+            return reject("Подтверждённый родитель изменён или повреждён. Запись отменена.");
     } else if (m_generation > 0) return reject("HEAD отсутствует. Сохранение отменено.");
+
+    if (m_generation == std::numeric_limits<int>::max())
+        return reject("Исчерпаны номера поколений");
     int n = m_generation + 1;
-    const QRegularExpression pattern("^generation-([0-9]+)\\.json$");
+    const QRegularExpression pattern("^generation-([0-9]+)(?:\\.meta)?\\.json$");
+    // Include orphan metadata as well as snapshots; never overwrite either after a failed save.
     for (const auto &name : QDir(m_folder).entryList({"generation-*.json"}, QDir::Files)) {
         const auto match = pattern.match(name);
-        if (match.hasMatch()) n = qMax(n, match.captured(1).toInt() + 1);
+        if (match.hasMatch()) {
+            bool ok = false;
+            const auto used = match.captured(1).toLongLong(&ok);
+            if (!ok || used >= std::numeric_limits<int>::max())
+                return reject("Исчерпаны номера поколений");
+            n = qMax(n, int(used + 1));
+        }
     }
-    QSaveFile snapshot(generationPath(n));
-    const auto bytes = QJsonDocument(next).toJson(QJsonDocument::Indented);
-    if (!snapshot.open(QIODevice::WriteOnly) || snapshot.write(bytes) != bytes.size() || !snapshot.commit())
+    const QString childHash = digest(next);
+    const QString parentHash = m_generation > 0 ? digest(m_document) : QString();
+    const QJsonObject metadata{
+        {"formatVersion", 1},
+        {"generation", n},
+        {"parentGeneration", m_generation},
+        {"parentSha256", parentHash},
+        {"timestampUtc", QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
+        {"description", description.section('\n', 0, 0).trimmed().left(200)},
+        {"sha256", childHash}
+    };
+    // Publish order: snapshot -> metadata -> HEAD. Any interrupted pre-HEAD files stay orphaned.
+    if (!writeAtomically(generationPath(n), QJsonDocument(next).toJson(QJsonDocument::Indented)))
         return reject("Не удалось сохранить поколение");
-    QSaveFile head(headPath);
-    const auto meta = QJsonDocument(QJsonObject{{"generation", n}}).toJson();
-    if (!head.open(QIODevice::WriteOnly) || head.write(meta) != meta.size() || !head.commit())
+    if (!writeAtomically(metadataPath(n), QJsonDocument(metadata).toJson(QJsonDocument::Indented)))
+        return reject("Не удалось сохранить метаданные; HEAD сохранён");
+    const auto pointer = QJsonDocument(QJsonObject{
+        {"generation", n}, {"metadataVersion", 1}, {"sha256", childHash}
+    }).toJson();
+    if (!writeAtomically(headPath, pointer))
         return reject("Не удалось обновить HEAD; предыдущее поколение сохранено");
+
+    m_parentGeneration = m_generation;
+    m_parentSha256 = parentHash;
     m_document = next;
     m_generation = n;
     m_contextGeneration = 0;
@@ -266,15 +356,21 @@ bool AppDocument::moveWidget(const QString &id, const QString &after) {
 
 bool AppDocument::applyPreview() {
     if (!hasPreview()) return reject("Нет изменений для применения");
-    return commit(m_candidate);
+    return commit(m_candidate, m_summary);
 }
 
 bool AppDocument::rollback() {
     cancelPreview();
-    if (m_generation < 2) return reject("Предыдущего сохранения нет");
+    if (m_parentGeneration < 1)
+        return reject("Нет подтверждённого родителя: старые поколения без метаданных не выбираются автоматически");
     QJsonObject prior;
-    if (!loadDocument(generationPath(m_generation - 1), prior)) return reject(m_error);
-    return stage(prior, "Восстановить предыдущее сохранение как новое поколение");
+    int ancestor = 0;
+    QString ancestorHash;
+    if (!loadGeneration(m_parentGeneration, prior, ancestor, ancestorHash, false))
+        return reject(m_error);
+    if (digest(prior) != m_parentSha256)
+        return reject("Контрольная сумма подтверждённого родителя не совпадает");
+    return stage(prior, "Восстановить подтверждённое поколение " + QString::number(m_parentGeneration));
 }
 
 bool AppDocument::resetDemo() {

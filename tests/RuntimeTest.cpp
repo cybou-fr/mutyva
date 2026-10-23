@@ -754,7 +754,7 @@ private slots:
         QFile snapshot(folder.filePath("generation-00001.json"));
         QVERIFY(snapshot.open(QIODevice::WriteOnly)); snapshot.write(json(legacy).toUtf8()); snapshot.close();
         QFile head(folder.filePath("head.json"));
-        QVERIFY(head.open(QIODevice::WriteOnly)); head.write("{\"generation\":1}"); head.close();
+        QVERIFY(head.open(QIODevice::WriteOnly)); head.write("{\"generation\":1}");
         const auto original = bytes(snapshot.fileName());
         AppDocument migrated(nullptr, folder.path());
         QCOMPARE(migrated.generation(), 2);
@@ -1200,6 +1200,108 @@ private slots:
         QVERIFY(!second.applyPreview());
         QCOMPARE(second.generation(), 1);
         QCOMPARE(bytes(folder.filePath("head.json")), head);
+    }
+
+    void confirmedParentSkipsOrphanAndSurvivesRestart() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        AppDocument document(nullptr, folder.path());
+        QCOMPARE(document.generation(), 1);
+        const auto original = document.documentJson();
+
+        // Valid but uncommitted generation 2 must NEVER become the rollback target.
+        auto uncommitted = baseline();
+        uncommitted.insert("name", "UNCONFIRMED ORPHAN");
+        QFile orphan(folder.filePath("generation-00002.json"));
+        QVERIFY(orphan.open(QIODevice::WriteOnly));
+        orphan.write(QJsonDocument(uncommitted).toJson());
+        orphan.close();
+        const auto originalOrphan = bytes(orphan.fileName());
+
+        QVERIFY(document.addHumidityCard());
+        QVERIFY2(document.applyPreview(), qPrintable(document.lastError()));
+        QCOMPARE(document.generation(), 3);
+        const auto meta = read(folder.filePath("generation-00003.meta.json"));
+        QCOMPARE(meta.value("formatVersion").toInt(), 1);
+        QCOMPARE(meta.value("generation").toInt(), 3);
+        QCOMPARE(meta.value("parentGeneration").toInt(), 1);
+        QCOMPARE(meta.value("parentSha256").toString().size(), 64);
+        QCOMPARE(meta.value("sha256").toString().size(), 64);
+        QVERIFY(meta.value("timestampUtc").toString().endsWith("Z"));
+        QVERIFY(!meta.value("description").toString().isEmpty());
+        QCOMPARE(bytes(orphan.fileName()), originalOrphan);
+        QCOMPARE(read(folder.filePath("head.json")).value("generation").toInt(), 3);
+
+        AppDocument reopened(nullptr, folder.path());
+        QCOMPARE(reopened.generation(), 3);
+        QVERIFY2(reopened.rollback(), qPrintable(reopened.lastError()));
+        QCOMPARE(reopened.previewWidgets().size(), 4);
+        QVERIFY(!reopened.previewSummary().contains("UNCONFIRMED ORPHAN"));
+        QCOMPARE(reopened.documentJson(), document.documentJson()); // No side effects before Apply.
+        QVERIFY2(reopened.applyPreview(), qPrintable(reopened.lastError()));
+        QCOMPARE(reopened.generation(), 4);
+        QCOMPARE(reopened.documentJson(), original);
+        QCOMPARE(read(folder.filePath("generation-00004.meta.json")).value("parentGeneration").toInt(), 3);
+        QCOMPARE(bytes(orphan.fileName()), originalOrphan);
+        AppDocument finalOpen(nullptr, folder.path());
+        QCOMPARE(finalOpen.documentJson(), original);
+    }
+
+    void legacyHistoryAndVerifiedParentIntegrity() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        const auto legacy = baseline();
+        QFile snapshot(folder.filePath("generation-00001.json"));
+        QVERIFY(snapshot.open(QIODevice::WriteOnly));
+        snapshot.write(QJsonDocument(legacy).toJson(QJsonDocument::Indented));
+        snapshot.close();
+        QFile head(folder.filePath("head.json"));
+        QVERIFY(head.open(QIODevice::WriteOnly));
+        head.write("{\"generation\":1}");
+        head.close();
+
+        AppDocument upgraded(nullptr, folder.path());
+        QCOMPARE(upgraded.generation(), 1);
+        QVERIFY(!upgraded.rollback()); // Unproven legacy ancestors cannot be inferred numerically.
+        QVERIFY(upgraded.addHumidityCard());
+        QVERIFY(upgraded.applyPreview());
+        QCOMPARE(upgraded.generation(), 2);
+        QVERIFY(!QFile::exists(folder.filePath("generation-00001.meta.json")));
+        QCOMPARE(read(folder.filePath("generation-00002.meta.json")).value("parentGeneration").toInt(), 1);
+        QVERIFY(upgraded.rollback());
+        QCOMPARE(upgraded.previewWidgets().size(), 4);
+        upgraded.cancelPreview();
+
+        // A valid but modified legacy parent is detected by the child record's parent digest.
+        auto tampered = legacy;
+        tampered.insert("name", "Tampered but valid");
+        QFile modified(snapshot.fileName());
+        QVERIFY(modified.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        modified.write(QJsonDocument(tampered).toJson());
+        modified.close();
+        QVERIFY(!upgraded.rollback());
+        QVERIFY(upgraded.lastError().contains("Контрольная сумма"));
+        AppDocument intactHead(nullptr, folder.path());
+        QCOMPARE(intactHead.generation(), 2); // Current child remains independently verifiable.
+    }
+
+    void generationMetadataCorruptionBlocksWrites() {
+        QTemporaryDir folder;
+        AppDocument document(nullptr, folder.path());
+        QVERIFY(document.addHumidityCard());
+        QVERIFY(document.applyPreview());
+        const auto head = bytes(folder.filePath("head.json"));
+        const auto snapshot = bytes(folder.filePath("generation-00002.json"));
+        QFile metadata(folder.filePath("generation-00002.meta.json"));
+        QVERIFY(metadata.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        metadata.write("{\"generation\":2,\"formatVersion\":1,\"sha256\":\"broken\"}");
+        metadata.close();
+        AppDocument reopened(nullptr, folder.path());
+        QVERIFY(!reopened.lastError().isEmpty());
+        QVERIFY(reopened.renameWidget("forecast", "Should not commit"));
+        QVERIFY(!reopened.applyPreview());
+        QCOMPARE(bytes(folder.filePath("head.json")), head);
+        QCOMPARE(bytes(folder.filePath("generation-00002.json")), snapshot);
     }
 
     void orphanAndCorruptHistory() {
