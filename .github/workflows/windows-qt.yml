@@ -10,6 +10,24 @@ permissions:
   contents: read
 
 jobs:
+  native-script-syntax:
+    name: Native acceptance PowerShell syntax
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse Qt 6.12 acceptance script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $path = Join-Path $env:GITHUB_WORKSPACE "tools/verify-qt612.ps1"
+          [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.ToString() }
+            throw "Qt 6.12 acceptance script syntax is invalid"
+          }
+          Write-Host "PowerShell script parses correctly; Qt runtime verification remains a separate gate"
+
   qt-msvc:
     name: Qt 6.12 / MSVC / CTest
     runs-on: windows-2022
