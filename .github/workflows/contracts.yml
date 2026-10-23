@@ -23,5 +23,7 @@ jobs:
         run: python tools/validate_palette.py
       - name: Validate bundled examples and JSON Schema
         run: python tools/validate_examples.py
+      - name: Validate architecture traceability and local ADR links
+        run: python tools/validate_architecture.py
       - name: Check Python scripts parse
         run: python -m compileall -q tools

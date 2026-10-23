@@ -8,6 +8,19 @@
 
 **Qt baseline decision (2026-10-23):** MUTYVA requires **Qt 6.12.x**. CMake enforces the 6.12 series, and Windows CI is pinned to **6.12.0**. All prior green Windows Qt 6.8 results below remain historical until a Qt 6.12 rerun succeeds. Do not treat earlier Qt 6.8 artifact captures as Qt 6.12 evidence.
 
+## Architectural review gate (2026-10-23)
+
+**Status baseline and priorities:** [23_ARCHITECTURE_ASSESSMENT.md](23_ARCHITECTURE_ASSESSMENT.md) records the as-is context/component boundaries, 10 architecture-significant requirements (ASR-01…10) and risks (AR-01…09). [ADR registry](adr/README.md) documents choice/alternatives/consequences; [engineering workflow](24_ARCHITECTURE_WORKFLOW.md) documents evidence levels and Definition of Done. The standalone static CI now checks local ADR links and traceability, in addition to the component catalog; this is **not** a Qt 6.12 build.
+
+**Immediate architecture fixes, already tracked (no separate duplicated backlog):**
+- **AR-01 → R0-02 / P0:** if HEAD is missing but old snapshot/metadata exist, **fail closed**, never silently bootstrap a new current application. Confirm in negative/failure fixtures.
+- **AR-02 → R0-03 / P0:** semantic preview must enumerate changed `model/filter/sort/style/options/message/source/icon/defaultCity` as well as action/parent and model changes. Show actual data/permission impact before Apply.
+- **AR-03 → R0-05 / P0 blocking gate:** official Qt 6.12 installer requires GitHub `QT_EMAIL` and `QT_PW`; no build/CTest acceptance until configured and successfully run.
+- **AR-04/05 → R1-07 and C1/C2 / P1:** characterize UI-state/record projection, then introduce the **smallest** host-owned typed selector/action seam; avoid speculative rewrite of `InteractionState`.
+- **AR-06 → R0-04/C4a / P1:** harden current Open-Meteo size/deadlines/late replies before expanding sources.
+
+**Architectural principle:** keep the local modular monolith and current native Qt/C++ architecture; extract modules **only** when an implemented vertical slice exercises a stable, tested interface. Do not increase component count to compensate for missing dataflow.
+
 ## Roadmap contract (reviewed 2026-10-23; baseline current main)
 
 **Two acceptance levels, not a silent change of the original MVP:**

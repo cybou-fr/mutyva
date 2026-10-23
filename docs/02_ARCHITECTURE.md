@@ -2,6 +2,8 @@
 
 **Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
 
+**Authoritative as-is architecture and traceable risks:** [23_ARCHITECTURE_ASSESSMENT.md](23_ARCHITECTURE_ASSESSMENT.md) (source-grounded C4 views, ASRs, risks). **Decision alternatives:** [ADRs](adr/README.md). **Delivery discipline:** [24_ARCHITECTURE_WORKFLOW.md](24_ARCHITECTURE_WORKFLOW.md). This older architecture page mixes current and target responsibilities; prefer doc23 for exact implementation status.
+
 ## Current versus target (mandatory distinction)
 
 The **implemented Qt 6.12 target baseline** is enforced in CMake (Windows Qt 6.12 CI needs official-installer secrets). Compiled host classes today are `AppDocument`, `DeclarativeRuntime`, `InteractionState`, `LocalDataStore`, `RecordStore`, `WeatherService`, `DesignerContext`, `AiChat` and `ChatSession`. The diagram/table below describe the **target logical responsibilities**, not a claim that each row is an implemented standalone class. Actual component kinds and restrictions are in [19_COMPONENT_REFERENCE.md](19_COMPONENT_REFERENCE.md).

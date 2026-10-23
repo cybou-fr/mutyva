@@ -4,11 +4,13 @@
 
 # MUTYVA — One App. Infinite Forms.
 
-**🇫🇷 [Étude de cas — Architecture, IA et MVP](docs/CASE_STUDY_FR.md)** — Présentation technique du runtime déclaratif et des mutations contrôlées.
+**🇫🇷 [Étude de cas — Architecture, IA et MVP](docs/CASE_STUDY_FR.md)** — Évaluation architecturale, alternatives, risques et preuves vérifiables.
+
+**Architecture review:** [As-is system & ASRs](docs/23_ARCHITECTURE_ASSESSMENT.md) · [Engineering workflow](docs/24_ARCHITECTURE_WORKFLOW.md) · [Architecture Decision Records](docs/adr/README.md) · [R0–R4 roadmap](docs/06_IMPLEMENTATION_ROADMAP.md).
 
 **Одно приложение. Любая форма.** Локальная среда приложений на Qt с общей палитрой, предпросмотром изменений и историей поколений.
 
-**Status:** declarative Qt editor with validated local mutations and preview, 2026-10-18. **Language:** Russian.
+**Status (2026-10-23):** evolving open-source prototype; 21 trusted Qt components, app-scoped local typed records and checked designer contracts. **Qt 6.12 native CI is blocked by installer-secret setup**; a passing static-contract CI is not a production or cross-platform qualification. **Documentation:** Russian, English and French.
 **Product:** One AI-driven Qt application that can become many applications; after a mutation is saved, it executes independently of AI.
 
 ## Product in one sentence
@@ -30,8 +32,10 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/06_IMPLEMENTATION_ROADMAP.md` | Current R0–R4 queue plus R1C typed composition/interaction/layout/connector gates |
 | `docs/07_TESTING_SECURITY.md` | End-to-end acceptance, threats, offline and error tests |
 | `docs/08_PLATFORMS_RELEASE.md` | Windows, Android, macOS, Linux and iOS strategy |
-| `docs/09_ENGINEERING_DECISIONS.md` | Binding decisions and non-goals |
+| `docs/09_ENGINEERING_DECISIONS.md` + `docs/adr/README.md` | Architectural trade-offs, alternatives, implementation state and reversal triggers |
 | `docs/10_AGENT_HANDOFF.md` | Copyable implementation instructions for coding agents |
+| `docs/23_ARCHITECTURE_ASSESSMENT.md` | Source-grounded architecture, C4 context/runtime views, ASRs, risk register and evidence |
+| `docs/24_ARCHITECTURE_WORKFLOW.md` | Requirements → ASR → ADR → typed contracts → tests → implementation → evidence → review |
 | `specs/` | JSON schemas (application and mutation) |
 | `examples/` | Declarative City Pulse and an example mutation |
 | `starter/` + root `CMakeLists.txt` | Qt 6 editor with live APIs, schema-checked documents, four mutation operations and preview |
@@ -45,7 +49,7 @@ MUTYVA is a local, declarative, cross-platform application runtime with a compon
 | `docs/22_AI_DESIGN_PLAYBOOK.md` | AI composer planning/anti-examples and present-vs-future capability status |
 | `runtime/designer-capabilities.json` | Bundled, concise machine-readable recipes and truthful capability map delivered to AI context |
 | `branding/` + `android/` | Source artwork, shared palette, desktop/Android icons and welcome/about identity |
-| `tools/validate_examples.py` | Standard-library example checks |
+| `tools/validate_examples.py`, `tools/validate_palette.py`, `tools/validate_architecture.py` | JSON/AI and architecture fitness checks in independent CI |
 
 ## Active development roadmap (2026-10-23)
 

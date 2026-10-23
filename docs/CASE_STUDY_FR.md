@@ -1,46 +1,69 @@
-# Étude de cas — MUTYVA
+# Étude de cas — MUTYVA, architecture native pilotée par contrats
 
-**Projet personnel open source — C++20, Qt/QML, architecture applicative et ingénierie assistée par IA.**  
-**État :** prototype évolutif ; tests d’intégration ChatGPT documentés sur Windows, sans qualification de production ou multiplateforme complète.
+**Projet personnel open source · Architecture logicielle et système · C++20 · Qt 6.12.x / QML · SQLite · IA assistée**  
+**État au 23 octobre 2026 :** prototype local, développement en cours. Le CI de vérification statique des contrats est vert; la compilation/testation Windows sous **Qt 6.12** demeure bloquée par la configuration des secrets du Qt Online Installer. Des exécutions Windows sous Qt 6.8 constituent des preuves historiques, **pas une qualification Qt 6.12, mobile ou production**.
 
-## 1. Problème et objectif
+## Le problème de conception
 
-Comment modifier une application par une demande en langage naturel sans exécuter arbitrairement le code généré par une IA ? MUTYVA vise un environnement déclaratif local, dont l’interface peut évoluer sans compromettre la maîtrise de ses composants et de son état.
+Permettre à une personne de créer ou d'adapter une application native par une demande en langage naturel, **sans faire exécuter le code produit par le modèle** et sans faire dépendre le fonctionnement ultérieur de l'application d'un appel à l'IA. Une mutation de l'interface ne doit ni détruire les données enregistrées, ni élargir silencieusement les permissions.
 
-## 2. Architecture retenue
+**Contraintes structurantes :** exécution locale, pas de backend ou comptes MUTYVA, pas de marketplace/synchronisation, pas de plugins exécutables arbitraires, composants natifs Qt, compatibilité des données, validation et consentement avant application. L'accès à ChatGPT concerne uniquement la phase facultative de conception, pas l'exécution locale.
 
-- **C++20 / Qt / QML :** moteur natif et présentation graphique.
-- **AppDocument et schémas :** descriptions JSON validées des composants et de leur configuration.
-- **ComponentRegistry :** palette de composants connus, rendus avec des types QML préconstruits ; aucune évaluation libre de QML produit par le modèle.
-- **MutationEngine :** contrôle du schéma et de la sémantique, prévisualisation et application sur confirmation.
-- **État local :** générations de configuration, données des formulaires et listes SQLite, indépendantes de l’IA.
-- **ChatGPT :** connexion et traitement des réponses isolés de l’exécution normale de l’application.
+## Mon approche d'architecture
 
-**Flux :** demande → proposition IA → validation → aperçu → confirmation → génération enregistrée → rendu Qt.
+```mermaid
+flowchart LR
+  R[Usage réel + exigences FR/NFR/ASR] --> T[Contraintes et modèles de menace]
+  T --> O[Options et arbitrages]
+  O --> A[Décision ADR + contrats]
+  A --> F[Tests négatifs / preuve de faisabilité]
+  F --> I[Tranche verticale Qt]
+  I --> V[CI et preuves observables]
+  V --> E[Réévaluation + roadmap]
+```
 
-[Architecture détaillée](02_ARCHITECTURE.md) · [Décisions](09_ENGINEERING_DECISIONS.md)
+La méthode documentée est **besoin → exigences significatives → alternatives → décision → contrat → test → implémentation → vérification → évolution**, et non « demander à l'IA d'écrire du code puis réorganiser le tout ». Les hypothèses et limites sont explicites. La réalisation assistée par IA ne dispense pas de maîtriser les frontières de sécurité, les données et les critères d'acceptation.
 
-## 3. Réalisation observable
+## Décisions et compromis visibles
 
-Le code comprend un éditeur Qt, un moteur de mutations contrôlées, des exemples déclaratifs, une démonstration météo Open-Meteo, des mécanismes de persistance et des tests Qt. Le projet documente un test Windows du 19 octobre 2026 intégrant une réponse de ChatGPT, une mutation et la restauration d’une génération. Cette preuve est issue du développement, non d’un audit indépendant.
+| Problème | Décision | Alternative écartée et raison |
+|---|---|---|
+| Déploiement et exécution native | **Monolithe modulaire local Qt/C++20** | Microservices/backend : charges opérationnelles, identité et synchronisation sans besoin utilisateur |
+| Production assistée par l'IA | **Déclarations JSON validées et composants QML précompilés** | QML/JS/SQL générés et exécutés : surface de risque et garanties faibles |
+| Mutation et restauration | **Générations de définition immuables, métadonnées vérifiées, Apply explicite** | Fichier mutable unique : perte de continuité et récupération complexe |
+| Données utilisateur | **SQLite indépendant des versions de l'interface** | Enregistrer les lignes dans chaque snapshot UI : retour arrière destructeur |
+| Composition future | **Sélecteurs typés, événements et commandes contrôlés par l'hôte** | Moteur générique de scripts/règles : coût et risque disproportionnés |
+| Données externes | **Adaptateurs HTTPS publics approuvés, lecture seule en première étape** | URLs et accès arbitraires : SSRF, fuites, credentials, écritures distantes |
 
-[Tests](../tests/RuntimeTest.cpp) · [Intégration IA et limites](15_AI_CONNECTION.md) · [Scénarios réels](16_LIVE_AI_TESTS.md)
+Voir le [registre d'ADR](adr/README.md) et l'[architecture actuelle et ses risques](23_ARCHITECTURE_ASSESSMENT.md).
 
-## 4. Choix et compromis
+## Architecture actuelle : des responsabilités traçables
 
-| Décision | Objectif | Limite |
-| --- | --- | --- |
-| Déclarations contrôlées plutôt que code généré exécutable | Garder des actions vérifiables | Palette de composants bornée |
-| Prévisualisation avant application | Maintenir une validation humaine | Étape supplémentaire dans le parcours |
-| Exécution locale des applications sauvegardées | Fonctionner sans appel IA | Nouvelles mutations nécessitant une connexion |
-| Aucun backend ou marketplace MUTYVA | Réduire l’infrastructure | Pas de synchronisation communautaire |
+- `DeclarativeRuntime` : validation du schéma v2, références, permissions, mutations.
+- `AppDocument` : génération confirmée, historique parent/hachage, prévisualisation.
+- `DesignerContext` : palette réelle de 21 types, schémas et recettes d'assemblage transmises à ChatGPT, **sans données enregistrées**.
+- `InteractionState` : état UI, sélection et opérations; découpage de ses responsabilités prévu avant le moteur de liaisons génériques.
+- `LocalDataStore` / `RecordStore` : données SQLite locales, CRUD transactionnel, révisions.
+- `WeatherService` : source HTTPS Open-Meteo codée et autorisée; connecteurs génériques non livrés.
+- `AiChat` / `ChatSession` : communication ChatGPT séparée de l'exécution normale.
+- QML de confiance : UI native issue des composants précompilés, **pas de compilation de code IA**.
 
-## 5. Validation et limites
+**Exemple vérifiable :** les composants `record-form` et `record-list` partagent un modèle de tâches et stockent de vraies lignes; les filtres/sorts sont déclaratifs. **Limites actuelles :** pas de liaison générique `select→record-list.filter`, pas de multi-app indépendante, pas de restauration guidée de toutes les générations ni de moteur REST arbitraire.
 
-Le MVP complet, les sessions persistantes protégées, les connecteurs génériques et la qualification de Windows, macOS, Linux, Android et iOS restent distincts des fonctions déjà réalisées. Les tests publiés ne sont pas une garantie de sécurité de production.
+## Exigences de qualité, risques et preuves
 
-## 6. Compétences illustrées
+Le [rapport ASR et risques](23_ARCHITECTURE_ASSESSMENT.md) relie intégrité de l'historique, protection de la vie privée, isolation des capacités, continuité des données, réactivité UI, adaptabilité et reproductibilité à des contrôles mesurables.
 
-Architecture logicielle, C++/Qt/QML, conception déclarative, intégration contrôlée de l’IA, documentation, gestion d’état, prototypage et réalisation d’un MVP. Il s’agit d’un projet personnel, pas d’une mission client.
+**Preuves disponibles :** [CI statique des contrats](https://github.com/cybou-fr/mutyva/actions/runs/39955309544) vert (catalogue/schémas/exemples); [ancien CI Windows Qt 6.8](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) avec 65 tests réussis et 21 images générées. **Non prouvé** à cette date : Qt 6.12 Windows, Android, restauration complète et création par IA d'une application locale indépendante.
 
-[Retour au dépôt](../README.md)
+**Défauts ouverts et assumés :** absence de HEAD avec snapshots existants, différences sémantiques incomplètes dans la prévisualisation, redondance des fonctions de `InteractionState`, normalisation partielle de sélection d'enregistrements, plafonds/délais réseau du service météo. Ces problèmes ont des scénarios d'échec et des critères de résolution dans la roadmap : ils ne sont pas cachés derrière une démonstration.
+
+## Pourquoi ce projet est un exemple d'expertise architecturale
+
+MUTYVA illustre : **analyse de besoins et contraintes, ADR avec alternatives, architecture native, frontières de confiance, contrats et compatibilité, données transactionnelles, conception de composants, stratégie de tests et de migration, CI et pilotage par preuves**. L'enjeu n'est pas le nombre de classes ou de widgets : c'est la maîtrise des changements avec un coût technique raisonnable.
+
+Le [workflow d'ingénierie](24_ARCHITECTURE_WORKFLOW.md) formalise une méthode réutilisable pour architecture, modernisation/migration de systèmes et livraison de MVP. Les évolutions futures ne sont validées qu'après preuve de fonctionnement et mise à jour des décisions.
+
+**Nature du projet :** réalisation personnelle open source, pas une mission client ni une attestation d'audit externe.
+
+[Source](../README.md) · [Architecture & ASR](23_ARCHITECTURE_ASSESSMENT.md) · [ADRs](adr/README.md) · [Workflow](24_ARCHITECTURE_WORKFLOW.md) · [Roadmap](06_IMPLEMENTATION_ROADMAP.md)

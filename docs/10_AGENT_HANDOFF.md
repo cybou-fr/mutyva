@@ -2,6 +2,12 @@
 
 **Product decision · 2026-10-19:** the normal experience is the running application plus **Чат с AI**. The host builds context, selects components and validates changes internally. JSON, palette controls, prompts and generations are developer tools, hidden behind Ctrl+Shift+D. Users describe a task and confirm its preview. See [14_CHAT_FIRST_UX.md](14_CHAT_FIRST_UX.md) for the primary workflow and [15_AI_CONNECTION.md](15_AI_CONNECTION.md) for implemented AI code and remaining verification.
 
+## Architecture-led agent operating instructions
+
+Before editing any trust, data, schema, composition, connector, persistence or build boundary, review [current baseline/ASRs/risks](23_ARCHITECTURE_ASSESSMENT.md), [ADRs](adr/README.md) and [workflow with Definition of Done](24_ARCHITECTURE_WORKFLOW.md). Use this sequence: **user-visible FR → ASR/failure modes → alternatives/ADR → typed boundary contract → negative fixture → smallest vertical slice → Qt 6.12 CTest and static evidence → update current state/roadmap**. Do not claim a green native test when only Python contract CI passed.
+
+The highest-risk source findings are **AR-01 missing HEAD bootstrap** (`AppDocument.cpp`), **AR-02 incomplete semantic diff** (`AppDocument.cpp`), and **AR-03 Qt 6.12 installation secrets**; fix under existing R0-02/R0-03/R0-05. No duplicate ticket backlog and no assigned human owners: module/ticket + concrete evidence suffice. Model-produced code and arbitrary external data access remain prohibited.
+
 ## Mission and authoritative queue
 
 The Foundation MVP (City Pulse → ChatGPT mutation → preview/apply → offline restart) has working code and one documented real-account Windows test. **Do not restart that implementation.** Finish its durability and clean-install gates, then deliver the Useful-app MVP: a user asks for a Task Manager, MUTYVA creates an independent local app with typed records, and a second AI request adds priority/due dates/filtering without losing tasks.
