@@ -1,6 +1,6 @@
 # R0-01 — Confirmed generation ancestry and integrity
 
-**Status:** implementation in source; Windows Qt build/CTest acceptance still required. This is the on-disk contract for new MUTYVA generations, introduced after the file-based v2 history.
+**Status:** implemented and regression-tested on Windows Qt 6.8/MSVC on 2026-10-23. See [verified CI run](https://github.com/cybou-fr/mutyva/actions/runs/39933293033). This is the on-disk contract for new MUTYVA generations, introduced after the file-based v2 history.
 
 ## Files and publication protocol
 
@@ -42,4 +42,4 @@ cmake --build build-msvc --config Release
 ctest --test-dir build-msvc -C Release --output-on-failure
 ```
 
-Keep R0-01 unchecked until these tests and the existing regressions pass on Qt. R0-02 (history browser/recovery/selection and further crash testing) and R0-03 (normal-user semantic diff) remain separate tickets.
+R0-01 passed alongside the existing Qt regressions on Windows; it is checked in the roadmap. R0-02 (history browser/recovery/selection and further crash testing) and R0-03 (normal-user semantic diff) remain separate tickets.

@@ -16,7 +16,7 @@ This is the **actual allowlisted palette shipped by the current source**, not a 
 
 ## Catalog reference
 
-Every entry below includes its concrete declaration example. **Screenshots:** Windows Qt CI runs the real QML renderer for every catalog kind and checks that it produces **21 PNG files**. They are attached to each successful [Windows Qt regression workflow](https://github.com/cybou-fr/mutyva/actions/workflows/windows-qt.yml) as the artifact `mutyva-component-gallery` (90-day retention), with one named `<kind>.png` per entry below. This is a tested artifact output rather than a hand-drawn or synthetic UI mockup. The screenshot-producing workflow is an acceptance gate; consult the **latest successful run** before claiming the captures exist.
+Every entry below includes its concrete declaration example. **Screenshots:** Windows Qt CI runs the real QML renderer for every catalog kind and checks that it produces **21 PNG files**. They are attached to each successful [Windows Qt regression workflow](https://github.com/cybou-fr/mutyva/actions/workflows/windows-qt.yml) as the artifact `mutyva-component-gallery` (90-day retention), with one named `<kind>.png` per entry below. This is a tested artifact output rather than a hand-drawn or synthetic UI mockup. **First verified 21-image capture:** [Windows Qt Actions run 39933293033](https://github.com/cybou-fr/mutyva/actions/runs/39933293033), [gallery ZIP artifact 12491489800](https://github.com/cybou-fr/mutyva/actions/runs/39933293033/artifacts/12491489800). All 21 PNGs were produced and are distinct 950 × 720 renders. Screenshots are retained as GitHub Actions artifacts for 90 days; consult the latest successful run for newer captures.
 
 ### `city-search` — Поиск города
 

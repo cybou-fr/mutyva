@@ -6,9 +6,9 @@
 
 The Foundation MVP (City Pulse → ChatGPT mutation → preview/apply → offline restart) has working code and one documented real-account Windows test. **Do not restart that implementation.** Finish its durability and clean-install gates, then deliver the Useful-app MVP: a user asks for a Task Manager, MUTYVA creates an independent local app with typed records, and a second AI request adds priority/due dates/filtering without losing tasks.
 
-**The single current task queue is [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md), starting at R0-01.** Its R0–R4 ticket IDs, dependencies and acceptance gates supersede the old weather-first work order in this handoff. [01_MVP_SPEC.md](01_MVP_SPEC.md) remains the original **Foundation** MVP contract; do not silently replace its historical meaning. The Useful-app contract is in roadmap Slices 5–7.
+**The single current task queue is [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md), starting at R0-02 (R0-01 passed CI on 2026-10-23).** Its R0–R4 ticket IDs, dependencies and acceptance gates supersede the old weather-first work order in this handoff. [01_MVP_SPEC.md](01_MVP_SPEC.md) remains the original **Foundation** MVP contract; do not silently replace its historical meaning. The Useful-app contract is in roadmap Slices 5–7.
 
-Current baseline reviewed 2026-10-23: main 4ff67fb before the documentation plan update. The checked boxes are repo evidence, not a guarantee that the current kit passes tests.
+Current verified baseline 2026-10-23: [Qt/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) passed 65 tests, 0 failures, and 21 individual screenshots; R0-01 and the initial typed-records/Qt palette slice have passing Windows evidence. Do not infer Android support, schema v3 completion, recovery UI or multi-app creation from these results.
 
 ## Non-negotiables
 

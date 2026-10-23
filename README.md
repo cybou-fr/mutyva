@@ -49,11 +49,11 @@ The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authorita
 
 All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
 
-## Typed records and extended UI palette — implementation under verification
+## Typed records and 21-component Qt palette
 
 The trusted palette now declares **21 kinds**: five Open-Meteo widgets, seven initial general widgets and nine new UI/data widgets (`record-form`, `record-list`, `checkbox`, `select`, `date-picker`, `dialog`, `tabs`, `image`, `icon`). Typed models, SQLite CRUD, filters and sorting are additive to the existing declaration version 2; old input/list data is not restructured. Use **Ctrl+Shift+D → Пример: задачи → Preview → Apply** to load the bundled task-manager composition inside the existing City Pulse app. The demo deliberately keeps the previous City Pulse source/permission declarations because arbitrary source/permission changes are still gated; this is *not* independent multi-app creation.
 
-See [full component reference](docs/19_COMPONENT_REFERENCE.md), [local-data contract](docs/13_LOCAL_DATA.md), [task example](examples/task-manager.mutyva.json) and `tools/validate_palette.py`. CTest and on-device visual acceptance for these newly added features are **pending**, not claimed as passed.
+See [full component reference](docs/19_COMPONENT_REFERENCE.md), [local-data contract](docs/13_LOCAL_DATA.md), [task example](examples/task-manager.mutyva.json) and `tools/validate_palette.py`. **Verified 2026-10-23:** [Windows Qt 6.8/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) built successfully, CTest reported **65 passed / 0 failed**, and an independently invoked Qt screenshot test captured [21 real component PNGs](https://github.com/cybou-fr/mutyva/actions/runs/39933293033/artifacts/12491489800). Mobile/on-device validation, schema v3 migration and independent multi-app creation are still pending.
 
 ## Default weather city
 
