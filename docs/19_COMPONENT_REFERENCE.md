@@ -103,7 +103,7 @@ European Air Quality Index выбранного города.
 
 Обычный текст без HTML и выражений.
 
-**Writable properties:** `title`, `text`. **Actions:** none. **Bindings:** none. **Permissions:** none.
+**Writable properties:** `style`, `title`, `text`. **Actions:** none. **Bindings:** none. **Permissions:** none.
 
 ```json
 {
@@ -120,7 +120,7 @@ European Air Quality Index выбранного города.
 
 Контейнер с фоном и заголовком. Вложенные виджеты ссылаются на его ID через parent.
 
-**Writable properties:** `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
+**Writable properties:** `style`, `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
 
 ```json
 {
@@ -136,7 +136,7 @@ European Air Quality Index выбранного города.
 
 Вертикальный контейнер вложенных компонентов.
 
-**Writable properties:** `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
+**Writable properties:** `style`, `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
 
 ```json
 {
@@ -152,7 +152,7 @@ European Air Quality Index выбранного города.
 
 Горизонтальный контейнер; на узком экране элементы располагаются вертикально.
 
-**Writable properties:** `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
+**Writable properties:** `style`, `title`. **Actions:** none. **Bindings:** none. **Permissions:** none.
 
 ```json
 {
@@ -168,7 +168,7 @@ European Air Quality Index выбранного города.
 
 Пользователь запускает разрешённое действие append-item или clear-list. Без action кнопка неактивна.
 
-**Writable properties:** `title`, `action`. **Actions:** `append-item`, `clear-list`. **Bindings:** none. **Permissions:** none.
+**Writable properties:** `style`, `title`, `action`. **Actions:** `append-item`, `clear-list`. **Bindings:** none. **Permissions:** none.
 
 ```json
 {

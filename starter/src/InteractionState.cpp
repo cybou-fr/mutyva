@@ -121,7 +121,15 @@ QVariantList InteractionState::records(const QString &widgetId) {
     const auto order = definition.value("sort").toObject();
     QList<QJsonObject> rows;
     for (const auto &entry : loaded) {
-        const auto row = entry.toObject();
+        auto row = entry.toObject();
+        // Newly added optional/default fields appear in old records without rewriting
+        // their payloads, identities or the historical data generations.
+        for (const auto &fieldEntry : model(modelId).value("fields").toArray()) {
+            const auto field = fieldEntry.toObject();
+            const auto fieldId = field.value("id").toString();
+            if (!row.contains(fieldId) && field.contains("default"))
+                row.insert(fieldId, field.value("default"));
+        }
         bool include = true;
         if (!filter.isEmpty()) {
             const auto value = row.value(filter.value("field").toString());

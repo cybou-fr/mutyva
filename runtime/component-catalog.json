@@ -129,7 +129,8 @@
       "permissions": [],
       "propertyNames": [
         "title",
-        "text"
+        "text",
+        "style"
       ],
       "defaults": {
         "text": "Новый текст"
@@ -144,7 +145,8 @@
       "actions": [],
       "permissions": [],
       "propertyNames": [
-        "title"
+        "title",
+        "style"
       ],
       "defaults": {}
     },
@@ -157,7 +159,8 @@
       "actions": [],
       "permissions": [],
       "propertyNames": [
-        "title"
+        "title",
+        "style"
       ],
       "defaults": {}
     },
@@ -170,7 +173,8 @@
       "actions": [],
       "permissions": [],
       "propertyNames": [
-        "title"
+        "title",
+        "style"
       ],
       "defaults": {}
     },
@@ -187,7 +191,8 @@
       "permissions": [],
       "propertyNames": [
         "title",
-        "action"
+        "action",
+        "style"
       ],
       "defaults": {}
     },

@@ -754,7 +754,7 @@ private slots:
         QFile snapshot(folder.filePath("generation-00001.json"));
         QVERIFY(snapshot.open(QIODevice::WriteOnly)); snapshot.write(json(legacy).toUtf8()); snapshot.close();
         QFile head(folder.filePath("head.json"));
-        QVERIFY(head.open(QIODevice::WriteOnly)); head.write("{\"generation\":1}");
+        QVERIFY(head.open(QIODevice::WriteOnly)); head.write("{\"generation\":1}"); head.close();
         const auto original = bytes(snapshot.fileName());
         AppDocument migrated(nullptr, folder.path());
         QCOMPARE(migrated.generation(), 2);
@@ -982,6 +982,7 @@ private slots:
         QVERIFY(document.applyPreview());
         QCOMPARE(first.modelFields("tasks").size(), 5);
         QCOMPARE(first.records("taskList").first().toMap().value("_id").toString(), remainingId);
+        QCOMPARE(first.records("taskList").first().toMap().value("category").toString(), QString("Общее"));
         auto incompatible = QJsonDocument::fromJson(document.documentJson().toUtf8()).object();
         auto models = incompatible.value("models").toArray();
         auto changed = models[0].toObject();
