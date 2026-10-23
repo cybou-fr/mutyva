@@ -96,5 +96,5 @@ $report = [ordered]@{
 }
 $reportFile = Join-Path $evidence "qt612-acceptance.json"
 $report | ConvertTo-Json -Depth 5 | Set-Content -Path $reportFile -Encoding utf8
-Write-Host "PASS Qt $version: CTest and all 21 individual real Qt screenshot captures"
+Write-Host "PASS Qt ${version}: CTest and all 21 individual real Qt screenshot captures"
 Write-Host "Evidence: $reportFile"
