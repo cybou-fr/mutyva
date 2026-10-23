@@ -1,6 +1,6 @@
 # AI Composer Playbook — machine-readable capabilities and quality gates
 
-**Applied-now guidance plus a proposed next-stage architecture, 2026-10-23.** The AI must design a **working application using real compiled Qt 6.12 components**, not just produce an impressive JSON tree. The corresponding small machine-readable summary is in [`runtime/designer-capabilities.json`](../runtime/designer-capabilities.json) and is sent alongside schema and component catalog by `DesignerContext` after this change.
+**Applied-now guidance plus a proposed next-stage architecture, 2026-10-23.** [Static AI contract CI passed](https://github.com/cybou-fr/mutyva/actions/runs/39955309544). [Qt 6.12 CTest remains blocked](https://github.com/cybou-fr/mutyva/actions/runs/39955309495) on official installer secrets. The AI must design a **working application using real compiled Qt 6.12 components**, not just produce an impressive JSON tree. The corresponding small machine-readable summary is in [`runtime/designer-capabilities.json`](../runtime/designer-capabilities.json) and is sent alongside schema and component catalog by `DesignerContext` after this change.
 
 ## What AI actually receives (current `contextVersion:1`)
 

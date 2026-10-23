@@ -69,3 +69,7 @@ For design work, read [20_COMPOSITION_CONTRACT.md](20_COMPOSITION_CONTRACT.md), 
 **Order after R0 and R1 migration:** C1 one-way record selection → trusted text; C2 event → one host command; C3 responsive layout tokens in current containers; C4a normalize existing Open-Meteo snapshot to read-only ports; only then C4b vetted second public source, R2 app isolation and R3 ChatGPT create-app. Give users apps with working dataflow, not static prototypes.
 
 **Acceptance:** no fabricated widgets/actions/bindings, no unconstrained URLs, all changes previewed, no data lost on schema growth/definition rollback, no private rows in AI context, real Qt 6.12 MSVC CTest before green status.
+
+## Independent static contract CI
+
+The new `.github/workflows/contracts.yml` validates the AI guide, component catalog, QML kind routes and current JSON Schema examples on Python 3.12, without Qt secrets. [Run 39955309544](https://github.com/cybou-fr/mutyva/actions/runs/39955309544) passed. That success does **not** imply a Qt 6.12 runtime test. The [Windows run](https://github.com/cybou-fr/mutyva/actions/runs/39955309495) stopped before compilation on absent Qt Account credentials; keep the Qt gate open.

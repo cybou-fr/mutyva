@@ -59,6 +59,9 @@ Roadmap checkboxes represent explicitly scoped evidence: R0-01 and initial SQLit
 
 ## AI application composition: a truthful, connected platform
 
+**Verified on 2026-10-23:** [Declarative and AI contracts CI](https://github.com/cybou-fr/mutyva/actions/runs/39955309544) passed catalog/QML consistency, AI recipe checks and Draft 2020-12 example schemas. [Windows Qt 6.12 CI](https://github.com/cybou-fr/mutyva/actions/runs/39955309495) stopped at missing `QT_EMAIL`/`QT_PW` secrets, before compilation. This is **not** a Qt 6.12 runtime test pass.
+
+
 MUTYVA now gives its AI designer a **bundled capability guide** (`runtime/designer-capabilities.json`) containing current component roles, five grounded composition recipes, actual supported interactions and explicit unsupported/future features. The host still checks proposals against the 21-kind catalog and v2 JSON schemas; the guide does not add any executable capabilities.
 
 The target composition model is documented in [typed ports/events/layout](docs/20_COMPOSITION_CONTRACT.md), [safe external data connectors](docs/21_CONNECTOR_CONTRACT.md), and the [AI playbook](docs/22_AI_DESIGN_PLAYBOOK.md). Planned v3 one-way selectors, event-to-host actions, responsive layout tokens and future vetted read-only external adapters are **not implemented in current v2**. A credible AI-generated app requires real persisted data and verified action/dataflow, not a pretty screen of disconnected controls.
