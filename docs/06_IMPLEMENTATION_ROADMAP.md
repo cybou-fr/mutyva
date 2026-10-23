@@ -4,6 +4,8 @@
 
 **Workflow:** straight to `main`, small commits, docs kept in sync; avoid speculative release-number archaeology. Acceptance is measured by demonstrable behavior, not number of classes added.
 
+**Qt baseline decision (2026-10-23):** MUTYVA requires **Qt 6.12.x**. CMake enforces the 6.12 series, and Windows CI is pinned to **6.12.0**. All prior green Windows Qt 6.8 results below remain historical until a Qt 6.12 rerun succeeds. Do not treat earlier Qt 6.8 artifact captures as Qt 6.12 evidence.
+
 ## Roadmap contract (reviewed 2026-10-23; baseline main 4ff67fb)
 
 **Two acceptance levels, not a silent change of the original MVP:**
@@ -30,7 +32,7 @@ No MUTYVA backend, accounts, package registry, shared marketplace, cloud sync, a
 
 ## Slice 0 — bootstrap and live API (start immediately)
 
-- [x] Windows MSVC / Qt 6.12 project compiles with CMake using C++20 and QML (other kits unverified).
+- [ ] Windows MSVC / **Qt 6.12.x** compiles with CMake using C++20 and QML; prior Qt 6.8 validation is historical only. Confirm in updated CI.
 - [ ] City Search -> Open-Meteo geocoding -> forecast and air-quality HTTPS.
 - [ ] Show loading, error, empty state, attribution and timestamps.
 - [ ] UI usable from ~360 dp width to desktop width.

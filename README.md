@@ -49,11 +49,13 @@ The [implementation roadmap](docs/06_IMPLEMENTATION_ROADMAP.md) is the authorita
 
 All R0–R4 tickets remain unchecked until acceptance evidence exists. This is a roadmap, not a claim that Task Manager, generic CRUD, multi-app support or Android AI sign-in has shipped.
 
+**Required toolchain:** Qt **6.12.x** (Qt 6.12.0 or any 6.12 patch), Qt Quick/Controls 2/SQL, C++20, and MSVC 2022 on Windows. CMake rejects Qt prior to 6.12.0 and Qt 6.13 or newer. GitHub Actions builds with **Qt 6.12.0** and validates the installed version. The earlier Qt 6.8 runs remain historical test evidence, **not** a supported build target.
+
 ## Typed records and 21-component Qt palette
 
 The trusted palette now declares **21 kinds**: five Open-Meteo widgets, seven initial general widgets and nine new UI/data widgets (`record-form`, `record-list`, `checkbox`, `select`, `date-picker`, `dialog`, `tabs`, `image`, `icon`). Typed models, SQLite CRUD, filters and sorting are additive to the existing declaration version 2; old input/list data is not restructured. Use **Ctrl+Shift+D → Пример: задачи → Preview → Apply** to load the bundled task-manager composition inside the existing City Pulse app. The demo deliberately keeps the previous City Pulse source/permission declarations because arbitrary source/permission changes are still gated; this is *not* independent multi-app creation.
 
-See [full component reference](docs/19_COMPONENT_REFERENCE.md), [local-data contract](docs/13_LOCAL_DATA.md), [task example](examples/task-manager.mutyva.json) and `tools/validate_palette.py`. **Verified 2026-10-23:** [Windows Qt 6.8/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) built successfully, CTest reported **65 passed / 0 failed**, and an independently invoked Qt screenshot test captured [21 real component PNGs](https://github.com/cybou-fr/mutyva/actions/runs/39933293033/artifacts/12491489800). Mobile/on-device validation, schema v3 migration and independent multi-app creation are still pending.
+See [full component reference](docs/19_COMPONENT_REFERENCE.md), [local-data contract](docs/13_LOCAL_DATA.md), [task example](examples/task-manager.mutyva.json) and `tools/validate_palette.py`. **Previous Windows baseline (historical):** [Windows Qt 6.8/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) built successfully, CTest reported **65 passed / 0 failed**, and an independently invoked Qt screenshot test captured [21 real component PNGs](https://github.com/cybou-fr/mutyva/actions/runs/39933293033/artifacts/12491489800). Mobile/on-device validation, schema v3 migration and independent multi-app creation are still pending.
 
 ## Default weather city
 
@@ -65,7 +67,7 @@ The main screen exposes **Чат с AI** and the running application. Open the c
 
 ## Quickest path to a visible result
 
-1. Install **Qt 6.8+** with Qt Quick, Qt Quick Controls, Qt SQL with QSQLITE and the desktop kit, CMake and C++20 toolchain.
+1. Install **Qt 6.12.x** (required; 6.8/6.11 and 6.13 are rejected by CMake) with Qt Quick, Qt Quick Controls, Qt SQL with QSQLITE and the desktop kit, CMake and C++20 toolchain.
 2. Open the root `CMakeLists.txt` in Qt Creator, or use `qt-cmake -S . -B build` then `cmake --build build --config Release`.
 3. Run `mutyva-demo` with internet access. Use **Ctrl+Shift+D** to reveal the development tools described below. It searches **Paris** and displays weather, a seven-day forecast and air quality via Open-Meteo.
 4. Press **+ Виджет влажности**: review the candidate interface, then press **Применить** to save a new generation or **Отмена** to discard it.
@@ -99,7 +101,7 @@ No MUTYVA server, package registry, accounts, marketplace, backend, synced state
 
 ## Key technical choices
 
-- **Qt 6.8+**, **C++20**, **QML/Qt Quick**, **CMake**.
+- **Qt 6.12.x**, **C++20**, **QML/Qt Quick**, **CMake**.
 - Local **SQLite** for catalog, history, settings and cached data in full MVP; the current runtime uses JSON snapshots for interface history and a separate SQLite database for input/list user data.
 - Declarative and schema-validated application trees; QML renders **prebuilt registered components**. Do not load untrusted generated QML as code.
 - OpenAI **Sign in with ChatGPT** for eligible open-source local applications, OAuth2 Authorization Code + PKCE + OIDC; no unofficial ChatGPT web endpoints or stolen sessions.

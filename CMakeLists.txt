@@ -2,8 +2,15 @@ cmake_minimum_required(VERSION 3.22)
 project(MUTYVA_Demo VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Network Sql)
-qt_standard_project_setup(REQUIRES 6.8)
+# MUTYVA targets the Qt 6.12 LTS series only. Allow 6.12 patch updates,
+# reject older releases and future minor versions until validated explicitly.
+set(MUTYVA_QT_MIN_VERSION "6.12.0")
+find_package(Qt6 ${MUTYVA_QT_MIN_VERSION} REQUIRED COMPONENTS Quick QuickControls2 Network Sql)
+if(NOT Qt6_VERSION VERSION_LESS "6.13.0")
+    message(FATAL_ERROR "MUTYVA requires Qt 6.12.x (found Qt ${Qt6_VERSION}); newer minor versions need explicit validation")
+endif()
+message(STATUS "MUTYVA Qt baseline: ${Qt6_VERSION} (supported family: 6.12.x)")
+qt_standard_project_setup(REQUIRES 6.12)
 qt_add_library(mutyva-core STATIC
     starter/src/DeclarativeRuntime.cpp starter/src/DeclarativeRuntime.h
     starter/src/AppDocument.cpp starter/src/AppDocument.h
@@ -64,7 +71,7 @@ if(BUILD_TESTING)
     if(Python3_Interpreter_FOUND)
         add_test(NAME palette-contract COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_palette.py")
     endif()
-    find_package(Qt6 6.8 REQUIRED COMPONENTS Test)
+    find_package(Qt6 ${MUTYVA_QT_MIN_VERSION} REQUIRED COMPONENTS Test)
     qt_add_executable(runtime-tests tests/RuntimeTest.cpp starter/src/WeatherService.cpp starter/src/WeatherService.h)
     target_link_libraries(runtime-tests PRIVATE mutyva-core Qt6::Test Qt6::Quick Qt6::QuickControls2 Qt6::Network)
     target_compile_definitions(runtime-tests PRIVATE MUTYVA_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

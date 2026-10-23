@@ -8,13 +8,13 @@ The Foundation MVP (City Pulse → ChatGPT mutation → preview/apply → offlin
 
 **The single current task queue is [06_IMPLEMENTATION_ROADMAP.md](06_IMPLEMENTATION_ROADMAP.md), starting at R0-02 (R0-01 passed CI on 2026-10-23).** Its R0–R4 ticket IDs, dependencies and acceptance gates supersede the old weather-first work order in this handoff. [01_MVP_SPEC.md](01_MVP_SPEC.md) remains the original **Foundation** MVP contract; do not silently replace its historical meaning. The Useful-app contract is in roadmap Slices 5–7.
 
-Current verified baseline 2026-10-23: [Qt/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) passed 65 tests, 0 failures, and 21 individual screenshots; R0-01 and the initial typed-records/Qt palette slice have passing Windows evidence. Do not infer Android support, schema v3 completion, recovery UI or multi-app creation from these results.
+Historical evidence as of 2026-10-23 (Qt 6.8): [Qt/MSVC CI](https://github.com/cybou-fr/mutyva/actions/runs/39933293033) passed 65 tests, 0 failures, and 21 individual screenshots; R0-01 and the initial typed-records/Qt palette slice have passing Windows evidence. Do not infer Android support, schema v3 completion, recovery UI or multi-app creation from these results.
 
 ## Non-negotiables
 
 - Read `README.md`, `06_IMPLEMENTATION_ROADMAP.md`, `01_MVP_SPEC`, `02_ARCHITECTURE`, `04_DECLARATIVE_RUNTIME`, `07_TESTING_SECURITY` before changing code; consult `03_CHATGPT_AUTH` when editing auth.
 - Start from root `CMakeLists.txt`; improve the starter instead of replacing Qt or introducing a web frontend.
-- Use Qt 6.8+/QML/C++20; avoid Qt WebEngine unless a proven requirement appears. OAuth opens the system browser.
+- Use Qt 6.12.x ONLY / QML / C++20; avoid Qt WebEngine unless a proven requirement appears. OAuth opens the system browser.
 - Use **only** official OpenAI Sign in with ChatGPT OAuth/Responses for AI. No paid API-key alternative in the normal flow, no cookie scraping, no other LLM.
 - Don't create a server, account service, remote registry, sync, custom kernel or speculative new branch. **Small Windows CTest CI and a license are expressly required by R0-05**; neither is unrelated infrastructure.
 - Prioritize user-visible end-to-end behavior, type checks and safe persistence over abstraction or styling polish.
