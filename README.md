@@ -4,7 +4,9 @@
 
 # MUTYVA — One App. Infinite Forms.
 
-**🇫🇷 [Étude de cas — Architecture, IA et MVP](docs/CASE_STUDY_FR.md)** — Évaluation architecturale, alternatives, risques et preuves vérifiables.
+**🇫🇷 [Étude de cas — Architecture, IA et MVP](docs/CASE_STUDY_FR.md)** — Évaluation architecturale, alternatives, risques et preuves vérifiables. · [Portfolio de l'architecte](https://github.com/cybou-fr)
+
+> **Pour un client :** ce projet illustre le passage d'une idée atypique à une architecture native testable, avec contrats, frontières de confiance, conservation des données et décisions argumentées. C'est un prototype R&D, pas une référence client ni un produit prêt à déployer.
 
 **Architecture review:** [As-is system & ASRs](docs/23_ARCHITECTURE_ASSESSMENT.md) · [Engineering workflow](docs/24_ARCHITECTURE_WORKFLOW.md) · [Architecture Decision Records](docs/adr/README.md) · [R0–R4 roadmap](docs/06_IMPLEMENTATION_ROADMAP.md).
 
